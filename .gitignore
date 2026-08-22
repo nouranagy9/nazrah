@@ -2,3 +2,8 @@ __pycache__/
 *.pyc
 .pytest_cache/
 .venv/
+
+# Downloaded on first run by nazrah.gaze_tracker.ensure_model()
+nazrah/models/
+
+usage_log.csv
