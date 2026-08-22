@@ -12,8 +12,8 @@ _MODEL_URL = (
 )
 _DEFAULT_MODEL_PATH = os.path.join(os.path.dirname(__file__), "models", "face_landmarker.task")
 
-# The FaceLandmarker task outputs 478 landmarks (the standard 468-point face
-# mesh plus 10 iris points); 468 and 473 are the right and left iris centers.
+# With refine_landmarks the FaceLandmarker task always outputs 478
+# landmarks; 468 and 473 are the iris centers.
 _RIGHT_IRIS_CENTER = 468
 _LEFT_IRIS_CENTER = 473
 
@@ -32,9 +32,16 @@ def ensure_model(model_path=_DEFAULT_MODEL_PATH):
 
 class GazeTracker:
     """Wraps MediaPipe's Face Landmarker task to extract a single normalized
-    (x, y) gaze position per frame, averaged across both iris centers. Runs
-    in real time on a Raspberry Pi 4 without any dedicated eye-tracking
-    hardware.
+    (x, y) gaze position per frame: the iris centers' raw position in the
+    video frame, averaged across both eyes.
+
+    This deliberately does NOT try to isolate pure eyeball rotation (e.g.
+    iris position relative to the eye socket) — most people naturally turn
+    their head somewhat toward whatever they're looking at rather than
+    holding it still and only rotating their eyes, so head movement is
+    part of the real signal here, not noise to cancel out. The calibration
+    step maps whatever combination of head + eye movement a given user
+    produces to screen coordinates, per-user.
     """
 
     def __init__(self, model_path=None):

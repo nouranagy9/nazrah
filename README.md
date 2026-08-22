@@ -45,9 +45,19 @@ cultural claim to hold up in front of judges.
    uses MediaPipe's Face Landmarker task (iris landmarks) to get a
    normalized eye position per frame. No dedicated eye-tracker hardware
    needed.
-2. **Calibration** — [`nazrah/calibration.py`](nazrah/calibration.py) does
-   a standard 5-point calibration (four corners + center) and fits a
-   least-squares mapping from eye position to screen coordinates.
+2. **Calibration** — [`nazrah/calibration.py`](nazrah/calibration.py) walks
+   through a grid of points (4x4 = 16 by default, see
+   `config.CALIBRATION_POINTS_RATIO`) and, for live tracking, classifies
+   the current eye position as whichever calibration point it's closest to
+   (nearest-neighbor), rather than fitting a continuous regression. A
+   plain webcam's gaze signal is too weak/noisy relative to full-screen
+   pixel coordinates for a continuous fit to extrapolate reliably — see the
+   docstring in `calibration.py` for what was tried first and why it
+   didn't hold up. Practically, this means the number of reliably
+   distinguishable targets is bounded by how many points you calibrate;
+   `nazrah/ui.py`'s `hit_test` maps each calibration point to whichever
+   phrase cell's center is nearest it. Pushing the grid size higher has a
+   ceiling — see the note in `config.py`.
 3. **Dwell-time selection** — [`nazrah/dwell.py`](nazrah/dwell.py) selects
    a phrase after the gaze holds on it for ~1.5s. Chosen over
    blink-detection: more reliable for users with limited or unpredictable
@@ -99,14 +109,17 @@ works fully offline.
 python -m nazrah.main
 ```
 
-This opens the phrase grid, walks through 5-point calibration (look at
-each highlighted point and hold still), then starts tracking gaze against
-the grid.
+This opens the phrase grid fullscreen, walks through grid calibration
+(look at each highlighted point and hold still — press Escape anytime to
+exit fullscreen), then starts tracking gaze against the grid.
 
-Currently wired to `WebcamSource` for development. Swap in
-`PiCameraSource` from [`nazrah/camera.py`](nazrah/camera.py) when running
-on the actual Raspberry Pi deployment (requires `picamera2`, which only
-installs on Pi OS).
+Wired to `WebcamSource`, which works identically on a laptop webcam and on
+a USB camera plugged into the Pi — no code change needed to move from dev
+to deployment with a USB camera. `PiCameraSource` in
+[`nazrah/camera.py`](nazrah/camera.py) is only needed if you switch to the
+Pi's CSI ribbon camera instead (requires `picamera2`, which only installs
+on Pi OS). See [`docs/raspberry_pi_setup.md`](docs/raspberry_pi_setup.md)
+for the full Raspberry Pi 5 + CrowPi deployment walkthrough.
 
 ## Testing
 

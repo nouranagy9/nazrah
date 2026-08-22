@@ -21,14 +21,11 @@ class Phrase:
 
 
 PHRASES = [
-    # الاحتياجات الأساسية — Basic needs
+    # الاحتياجات الأساسية — Main needs
     Phrase("water", "basic_needs", "ماء", "maa'", "\U0001F4A7"),
     Phrase("hungry", "basic_needs", "جوعان", "jaw'an", "\U0001F37D"),
     Phrase("bathroom", "basic_needs", "حمام", "hammam", "\U0001F6BB"),
     Phrase("pain", "basic_needs", "ألم", "alam", "⚠"),
-    Phrase("tired", "basic_needs", "تعبان", "ta'ban", "\U0001F634"),
-    Phrase("cold", "basic_needs", "بردان", "bardan", "\U0001F976"),
-    Phrase("hot", "basic_needs", "حرّان", "harran", "\U0001F975"),
 
     # الصلاة والعبادة — Prayer & worship
     Phrase("prayer", "prayer", "الصلاة", "as-salah", "\U0001F54C"),
@@ -40,8 +37,6 @@ PHRASES = [
     Phrase("father", "family", "بابا", "baba", "\U0001F468"),
     Phrase("grandfather", "family", "جدّي", "jiddi", "\U0001F474"),
     Phrase("grandmother", "family", "جدتي", "jiddati", "\U0001F475"),
-    Phrase("brother", "family", "أخوي", "akhoy", "\U0001F466"),
-    Phrase("sister", "family", "أختي", "ukhti", "\U0001F467"),
     Phrase("caregiver", "family", "الممرضة", "al-mumarrida", "\U0001F9D1‍⚕️"),
 
     # طلبات ومشاعر — Requests & feelings

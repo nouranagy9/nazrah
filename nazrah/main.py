@@ -1,30 +1,40 @@
 import time
 
 from . import phrases as phrase_data
-from .calibration import Calibrator
+from .calibration import Calibrator, median_point
 from .camera import WebcamSource
-from .config import CALIBRATION_POINTS_RATIO, DWELL_SECONDS, GRID_COLUMNS
+from .config import (
+    CALIBRATION_POINTS_RATIO,
+    DWELL_SECONDS,
+    GRID_COLUMNS,
+    TARGET_CONFIRM_FRAMES,
+)
 from .dwell import DwellSelector
 from .gaze_tracker import GazeTracker
 from .logger import UsageLogger
+from .smoothing import TargetSmoother
 from .tts import TTSEngine
 from .ui import PhraseGridUI
 
 
 def run_calibration(ui, tracker, camera):
-    """Standard 5-point calibration: look at each highlighted corner/center
-    in turn and hold still while samples are collected."""
+    """Grid calibration (size set by config.CALIBRATION_POINTS_RATIO): look
+    at each highlighted point in turn and hold still while samples are
+    collected. Naturally turning your head toward each point (not just
+    moving your eyes) is expected and fine — see the note in
+    gaze_tracker.GazeTracker."""
     calibrator = Calibrator()
     screen_w = ui.root.winfo_screenwidth()
     screen_h = ui.root.winfo_screenheight()
 
     for rx, ry in CALIBRATION_POINTS_RATIO:
         target = (int(rx * screen_w), int(ry * screen_h))
-        print(f"Look at point {target} and hold still...")
-        time.sleep(1.0)  # give the user time to move their gaze
+        ui.show_calibration_target(*target)
+        print("Look at the red dot and hold still...")
+        time.sleep(1.2)  # give the user time to move their gaze to the dot
 
         samples = []
-        deadline = time.monotonic() + 1.5
+        deadline = time.monotonic() + 2.0
         while time.monotonic() < deadline:
             frame = camera.read()
             if frame is None:
@@ -37,13 +47,11 @@ def run_calibration(ui, tracker, camera):
             print("No face detected during this calibration point — skipping it.")
             continue
 
-        avg_eye = (
-            sum(p[0] for p in samples) / len(samples),
-            sum(p[1] for p in samples) / len(samples),
-        )
-        calibrator.add_sample(avg_eye, target)
+        median_eye = median_point(samples)
+        calibrator.add_sample(median_eye, target)
+        print(f"  target={target} median_eye_pos={median_eye} samples={len(samples)}", flush=True)
 
-    calibrator.fit()
+    ui.hide_calibration_target()
     return calibrator
 
 
@@ -53,6 +61,7 @@ def main():
     logger = UsageLogger()
     tts = TTSEngine()
     dwell = DwellSelector(dwell_seconds=DWELL_SECONDS)
+    smoother = TargetSmoother(confirm_frames=TARGET_CONFIRM_FRAMES)
 
     def on_select(phrase_id):
         phrase = phrase_data.by_id(phrase_id)
@@ -64,19 +73,36 @@ def main():
     ui.update()
 
     calibrator = run_calibration(ui, tracker, camera)
+    print(f"Calibration done with {calibrator.num_samples} samples", flush=True)
 
     try:
-        while True:
+        frame_count = 0
+        while not ui.closed:
             frame = camera.read()
             if frame is None:
                 ui.update()
                 continue
 
             eye_pos = tracker.get_eye_position(frame)
-            target_id = None
-            if eye_pos is not None and calibrator.is_fitted:
-                screen_x, screen_y = calibrator.predict(eye_pos)
-                target_id = ui.hit_test(screen_x, screen_y)
+            raw_target_id = None
+            screen_x = screen_y = None
+            if eye_pos is not None and calibrator.num_samples > 0:
+                screen_x, screen_y = calibrator.nearest_target(eye_pos)
+                raw_target_id = ui.hit_test(screen_x, screen_y)
+
+            # Smooth before feeding into dwell: a single frame misclassified
+            # to a neighboring calibration point (easy when points are
+            # packed close together — see calibration.py) shouldn't be able
+            # to flip the target dwell is timing.
+            target_id = smoother.update(raw_target_id)
+
+            frame_count += 1
+            if frame_count % 15 == 0:
+                print(
+                    f"eye_pos={eye_pos} screen=({screen_x}, {screen_y}) "
+                    f"raw={raw_target_id} smoothed={target_id} progress={dwell.progress:.2f}",
+                    flush=True,
+                )
 
             fired = dwell.update(target_id)
             ui.set_active_cell(target_id, dwell.progress)
