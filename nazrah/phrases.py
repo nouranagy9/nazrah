@@ -30,14 +30,10 @@ PHRASES = [
     # الصلاة والعبادة — Prayer & worship
     Phrase("prayer", "prayer", "الصلاة", "as-salah", "\U0001F54C"),
     Phrase("wudu", "prayer", "وضوء", "wudu'", "\U0001F4A6"),
-    Phrase("quran", "prayer", "القرآن", "al-Qur'an", "\U0001F4D6"),
 
     # أفراد العائلة — Family members
     Phrase("mother", "family", "يمّه", "yumma", "\U0001F469"),
     Phrase("father", "family", "بابا", "baba", "\U0001F468"),
-    Phrase("grandfather", "family", "جدّي", "jiddi", "\U0001F474"),
-    Phrase("grandmother", "family", "جدتي", "jiddati", "\U0001F475"),
-    Phrase("caregiver", "family", "الممرضة", "al-mumarrida", "\U0001F9D1‍⚕️"),
 
     # طلبات ومشاعر — Requests & feelings
     Phrase("yes", "responses", "نعم", "na'am", "✅"),

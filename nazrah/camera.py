@@ -24,7 +24,13 @@ class WebcamSource(CameraSource):
     """Any USB/built-in webcam via OpenCV. Used for development and testing
     on a regular laptop/desktop."""
 
-    def __init__(self, index=0, width=640, height=480):
+    def __init__(self, index=0, width=1280, height=720):
+        # Higher resolution than the old 640x480 default gives MediaPipe
+        # more pixels across the eye region, which directly improves how
+        # precisely it can localize the iris landmark — the gaze signal is
+        # already weak (see gaze_tracker.py), so every bit of localization
+        # precision matters for whether nearby calibration points are
+        # actually distinguishable.
         self._cap = cv2.VideoCapture(index)
         self._cap.set(cv2.CAP_PROP_FRAME_WIDTH, width)
         self._cap.set(cv2.CAP_PROP_FRAME_HEIGHT, height)

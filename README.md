@@ -46,8 +46,9 @@ cultural claim to hold up in front of judges.
    normalized eye position per frame. No dedicated eye-tracker hardware
    needed.
 2. **Calibration** — [`nazrah/calibration.py`](nazrah/calibration.py) walks
-   through a grid of points (4x4 = 16 by default, see
-   `config.CALIBRATION_POINTS_RATIO`) and, for live tracking, classifies
+   through a grid of points sized to exactly match the phrase grid's own
+   columns x rows (see `config.CALIBRATION_POINTS_RATIO`, derived from
+   `phrases.PHRASES` and `GRID_COLUMNS`) and, for live tracking, classifies
    the current eye position as whichever calibration point it's closest to
    (nearest-neighbor), rather than fitting a continuous regression. A
    plain webcam's gaze signal is too weak/noisy relative to full-screen
