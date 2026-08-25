@@ -31,3 +31,17 @@ def test_by_id_returns_matching_phrase():
 def test_by_id_raises_for_unknown_id():
     with pytest.raises(KeyError):
         by_id("does-not-exist")
+
+
+def test_pain_and_help_are_marked_urgent():
+    # These trigger a remote caregiver alert (see notifier.py) — the most
+    # time-sensitive phrases in the set.
+    assert by_id("pain").urgent is True
+    assert by_id("help").urgent is True
+
+
+def test_most_phrases_are_not_urgent():
+    # Guards against accidentally marking everything urgent, which would
+    # spam the caregiver's phone for routine selections.
+    urgent_count = sum(1 for p in PHRASES if p.urgent)
+    assert urgent_count < len(PHRASES) / 2

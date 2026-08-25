@@ -18,6 +18,7 @@ class Phrase:
     text_ar: str
     transliteration: str
     icon: str  # emoji placeholder for the grid; swap for real icon assets later
+    urgent: bool = False  # also sends a remote push alert to the caregiver — see notifier.py
 
 
 PHRASES = [
@@ -25,7 +26,7 @@ PHRASES = [
     Phrase("water", "basic_needs", "ماء", "maa'", "\U0001F4A7"),
     Phrase("hungry", "basic_needs", "جوعان", "jaw'an", "\U0001F37D"),
     Phrase("bathroom", "basic_needs", "حمام", "hammam", "\U0001F6BB"),
-    Phrase("pain", "basic_needs", "ألم", "alam", "⚠"),
+    Phrase("pain", "basic_needs", "ألم", "alam", "⚠", urgent=True),
 
     # الصلاة والعبادة — Prayer & worship
     Phrase("prayer", "prayer", "الصلاة", "as-salah", "\U0001F54C"),
@@ -38,7 +39,7 @@ PHRASES = [
     # طلبات ومشاعر — Requests & feelings
     Phrase("yes", "responses", "نعم", "na'am", "✅"),
     Phrase("no", "responses", "لا", "la", "❌"),
-    Phrase("help", "responses", "ساعدني", "sa'idni", "\U0001F198"),
+    Phrase("help", "responses", "ساعدني", "sa'idni", "\U0001F198", urgent=True),
     Phrase("sleep", "responses", "أريد أن أنام", "ureedu an anam", "\U0001F6CC"),
 ]
 

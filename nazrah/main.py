@@ -1,3 +1,4 @@
+import threading
 import time
 
 from . import phrases as phrase_data
@@ -7,11 +8,13 @@ from .config import (
     CALIBRATION_POINTS_RATIO,
     DWELL_SECONDS,
     GRID_COLUMNS,
+    NTFY_TOPIC,
     TARGET_CONFIRM_FRAMES,
 )
 from .dwell import DwellSelector
 from .gaze_tracker import GazeTracker
 from .logger import UsageLogger
+from .notifier import CaregiverNotifier
 from .smoothing import TargetSmoother
 from .tts import TTSEngine
 from .ui import PhraseGridUI
@@ -63,11 +66,23 @@ def main():
     dwell = DwellSelector(dwell_seconds=DWELL_SECONDS)
     smoother = TargetSmoother(confirm_frames=TARGET_CONFIRM_FRAMES)
 
+    notifier = CaregiverNotifier(NTFY_TOPIC) if NTFY_TOPIC else None
+    if notifier is None:
+        print(
+            "[Notifier] NAZRAH_NTFY_TOPIC not set — urgent phrases won't send "
+            "a remote caregiver alert, only the local speaker.",
+            flush=True,
+        )
+
     def on_select(phrase_id):
         phrase = phrase_data.by_id(phrase_id)
         tts.speak(phrase)
         logger.log_selection(phrase)
         ui.flash_selection(phrase_id)
+        if phrase.urgent and notifier is not None:
+            # Runs on a background thread so a slow/unreachable network
+            # can't stall gaze tracking while an urgent alert is in flight.
+            threading.Thread(target=notifier.notify, args=(phrase,), daemon=True).start()
 
     ui = PhraseGridUI(on_select=on_select, columns=GRID_COLUMNS)
     ui.update()

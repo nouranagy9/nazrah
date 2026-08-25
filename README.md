@@ -60,7 +60,8 @@ cultural claim to hold up in front of judges.
    phrase cell's center is nearest it. Pushing the grid size higher has a
    ceiling — see the note in `config.py`.
 3. **Dwell-time selection** — [`nazrah/dwell.py`](nazrah/dwell.py) selects
-   a phrase after the gaze holds on it for ~1.5s. Chosen over
+   a phrase after the gaze holds on it (`config.DWELL_SECONDS`, currently
+   2.5s). Chosen over
    blink-detection: more reliable for users with limited or unpredictable
    eyelid control.
 4. **Phrase grid UI** — [`nazrah/ui.py`](nazrah/ui.py), a Tkinter grid of
@@ -68,7 +69,14 @@ cultural claim to hold up in front of judges.
 5. **Speech output** — [`nazrah/tts.py`](nazrah/tts.py) speaks the selected
    phrase aloud (pre-recorded Arabic audio bank preferred, falls back to
    system TTS) so a caregiver in another room hears it.
-6. **Usage logging** — [`nazrah/logger.py`](nazrah/logger.py) logs every
+6. **Caregiver alerts** — [`nazrah/notifier.py`](nazrah/notifier.py) sends
+   a push notification to the caregiver's phone (via ntfy.sh) when an
+   urgent phrase — currently `pain` and `help`, see the `urgent` flag in
+   `phrases.py` — is selected, for when they're not in the room to hear
+   the local speaker. The device can't actually detect whether anyone's
+   in the room (the camera watches the patient's face, not the room), so
+   this fires on urgent selections rather than trying to sense presence.
+7. **Usage logging** — [`nazrah/logger.py`](nazrah/logger.py) logs every
    selection, which is the raw data for the evaluation/iteration step
    (Criterion D).
 
@@ -114,6 +122,26 @@ This opens the phrase grid fullscreen, walks through grid calibration
 (look at each highlighted point and hold still — press Escape anytime to
 exit fullscreen), then starts tracking gaze against the grid.
 
+### Caregiver alerts (optional)
+
+To enable remote push alerts for urgent phrases:
+
+1. Pick a long, random topic name — this is effectively a shared password;
+   anyone who knows it can read the alerts, so don't use something
+   guessable like `nazrah-alerts`.
+2. Have the caregiver install the free [ntfy app](https://ntfy.sh/) (iOS/
+   Android) or open `https://ntfy.sh/<your-topic>` in a browser, and
+   subscribe to that topic.
+3. Set the same topic as an environment variable before running the app:
+   ```bash
+   export NAZRAH_NTFY_TOPIC="your-long-random-topic-name"
+   python -m nazrah.main
+   ```
+
+Without this set, the app runs exactly as before — urgent phrases still
+speak locally, they just skip the remote alert (and it prints a note at
+startup saying so).
+
 Wired to `WebcamSource`, which works identically on a laptop webcam and on
 a USB camera plugged into the Pi — no code change needed to move from dev
 to deployment with a USB camera. `PiCameraSource` in
@@ -137,6 +165,12 @@ Criterion D notes for that testing process.
 
 Add entries to `PHRASES` in [`nazrah/phrases.py`](nazrah/phrases.py) —
 `id`, `category`, Arabic text, transliteration, and an icon (emoji
-placeholder until real icon assets are added). To use recorded audio
-instead of system TTS for a phrase, drop a `<phrase_id>.wav` file into the
-audio bank directory passed to `TTSEngine(audio_bank_dir=...)`.
+placeholder until real icon assets are added). Pass `urgent=True` if the
+phrase should also trigger a remote caregiver alert (see above). To use
+recorded audio instead of system TTS for a phrase, drop a
+`<phrase_id>.wav` file into the audio bank directory passed to
+`TTSEngine(audio_bank_dir=...)`.
+
+Keep the phrase count a multiple of `GRID_COLUMNS` (currently 4) — the
+calibration grid derives its size from `len(PHRASES)`, and a non-multiple
+count leaves the last row incomplete (see the note in `config.py`).

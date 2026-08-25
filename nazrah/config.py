@@ -1,8 +1,19 @@
 import math
+import os
 
 from .phrases import PHRASES
 
 DWELL_SECONDS = 2.5
+
+# ntfy.sh topic for remote caregiver alerts on urgent phrases (see
+# notifier.py). Deliberately NOT hardcoded here: the topic name is the
+# only thing standing between a stranger and reading the patient's urgent
+# alerts, so it shouldn't live in a public repo. Set it as an environment
+# variable instead:
+#   export NAZRAH_NTFY_TOPIC="some-long-random-string"
+# and have the caregiver subscribe to the same topic in the ntfy app.
+# Alerts are silently skipped if this isn't set.
+NTFY_TOPIC = os.environ.get("NAZRAH_NTFY_TOPIC")
 
 # How many consecutive frames a new target classification must repeat
 # before a gaze shift is treated as real (see nazrah/smoothing.py). Higher
