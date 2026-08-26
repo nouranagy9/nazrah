@@ -39,3 +39,12 @@ class TargetSmoother:
             self._candidate_count = 0
 
         return self._current
+
+    def reset(self):
+        """Clears all remembered state. Must be called whenever the set of
+        valid target ids changes out from under the smoother — e.g. a
+        screen switch — since `_current` can otherwise keep returning an
+        id from the old screen that no longer exists in the new one."""
+        self._current = None
+        self._candidate = None
+        self._candidate_count = 0

@@ -26,6 +26,12 @@ TARGET_CONFIRM_FRAMES = 2
 CAMERA_INDEX = 0
 GRID_COLUMNS = 4
 
+# GPIO pin the light/relay is wired to on the deployed Pi (see light.py).
+# Irrelevant on a dev machine with no such hardware — GpioLightController
+# just fails to import gpiozero there and main.py falls back to
+# NoOpLightController automatically.
+LIGHT_GPIO_PIN = 17
+
 # Calibration grid targets as (x_ratio, y_ratio) of the screen, sized to
 # exactly match the phrase grid's own columns x rows — a calibration grid
 # that doesn't line up with the actual grid was a real, hard-to-spot bug

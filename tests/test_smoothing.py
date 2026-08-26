@@ -45,3 +45,31 @@ def test_none_is_treated_like_any_other_target():
     smoother.update("water")
     smoother.update(None)
     assert smoother.update(None) is None
+
+
+def test_reset_clears_current_target():
+    smoother = TargetSmoother(confirm_frames=2)
+    smoother.update("needs")
+    smoother.update("needs")  # "needs" is now current
+
+    smoother.reset()
+
+    # Without a reset, a stale "needs" would keep being returned even
+    # though it's a cell id from a screen that no longer exists (the bug
+    # this guards against: a screen switch leaving the smoother pointing
+    # at an id from the old screen).
+    assert smoother.update(None) is None
+
+
+def test_reset_clears_in_progress_candidate():
+    smoother = TargetSmoother(confirm_frames=3)
+    smoother.update("water")
+    smoother.update("water")
+    smoother.update("water")  # "water" is current
+    smoother.update("hungry")  # candidate, count=1
+
+    smoother.reset()
+
+    # If the candidate count survived the reset, one more "hungry" frame
+    # would wrongly confirm it (count would reach 2, not 1).
+    assert smoother.update("hungry") is None

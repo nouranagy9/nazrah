@@ -64,19 +64,35 @@ cultural claim to hold up in front of judges.
    2.5s). Chosen over
    blink-detection: more reliable for users with limited or unpredictable
    eyelid control.
-4. **Phrase grid UI** — [`nazrah/ui.py`](nazrah/ui.py), a Tkinter grid of
-   Arabic phrases with icons, showing dwell progress as the gaze lingers.
-5. **Speech output** — [`nazrah/tts.py`](nazrah/tts.py) speaks the selected
+4. **Two-screen UI** — [`nazrah/ui.py`](nazrah/ui.py)'s `GridUI` is a
+   Tkinter grid of gaze-selectable cells, reused for both screens the
+   session moves between (see `main.py`'s `SCREEN_HOME`/`SCREEN_NEEDS`):
+   a **home screen** (turn off the light / go to needs) and the **needs
+   screen** (the phrase grid, with a "Home" cell to come back). Only one
+   calibration pass is needed for the whole session — `show()` swaps
+   which cells are on screen without recreating the window, since
+   calibration only depends on screen dimensions, not on what's drawn.
+   Switching screens resets `TargetSmoother` (see `smoothing.py`) —
+   without that, its memory of "what was last confirmed" can point at a
+   cell id from the screen just left, which doesn't exist in the new
+   one's cells.
+5. **Light control** — [`nazrah/light.py`](nazrah/light.py) turns off a
+   light/relay from the home screen. Same Pi/dev split as `camera.py`:
+   `GpioLightController` drives a real relay via gpiozero on the deployed
+   Pi, `NoOpLightController` just logs what would have happened on a dev
+   machine with no such hardware wired up — `main.py` picks whichever
+   works automatically.
+6. **Speech output** — [`nazrah/tts.py`](nazrah/tts.py) speaks the selected
    phrase aloud (pre-recorded Arabic audio bank preferred, falls back to
    system TTS) so a caregiver in another room hears it.
-6. **Caregiver alerts** — [`nazrah/notifier.py`](nazrah/notifier.py) sends
+7. **Caregiver alerts** — [`nazrah/notifier.py`](nazrah/notifier.py) sends
    a push notification to the caregiver's phone (via ntfy.sh) when an
    urgent phrase — currently `pain` and `help`, see the `urgent` flag in
    `phrases.py` — is selected, for when they're not in the room to hear
    the local speaker. The device can't actually detect whether anyone's
    in the room (the camera watches the patient's face, not the room), so
    this fires on urgent selections rather than trying to sense presence.
-7. **Usage logging** — [`nazrah/logger.py`](nazrah/logger.py) logs every
+8. **Usage logging** — [`nazrah/logger.py`](nazrah/logger.py) logs every
    selection, which is the raw data for the evaluation/iteration step
    (Criterion D).
 
@@ -118,9 +134,11 @@ works fully offline.
 python -m nazrah.main
 ```
 
-This opens the phrase grid fullscreen, walks through grid calibration
-(look at each highlighted point and hold still — press Escape anytime to
-exit fullscreen), then starts tracking gaze against the grid.
+This opens fullscreen, walks through grid calibration (look at each
+highlighted point and hold still — press Escape anytime to exit
+fullscreen), then lands on the home screen: two cells, "إطفاء الضوء"
+(turn off the light) and "الاحتياجات" (needs — the phrase grid). From the
+needs screen, a "🏠 الرئيسية" cell goes back home.
 
 ### Caregiver alerts (optional)
 
@@ -174,3 +192,9 @@ recorded audio instead of system TTS for a phrase, drop a
 Keep the phrase count a multiple of `GRID_COLUMNS` (currently 4) — the
 calibration grid derives its size from `len(PHRASES)`, and a non-multiple
 count leaves the last row incomplete (see the note in `config.py`).
+
+Note that `main.py`'s `NEEDS_ITEMS` (what's actually shown on the needs
+screen) isn't quite `phrases.PHRASES` directly — it drops `wudu` and adds
+a `home` cell, to make room for navigating back to the home screen while
+keeping a clean 12-cell grid. Adding or removing phrases means revisiting
+that list too.
