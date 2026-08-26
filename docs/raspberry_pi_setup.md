@@ -71,6 +71,20 @@ version, check
 for which versions are available and pin to one of those in
 `requirements.txt`.
 
+If you're wiring up the home screen's light/relay control (see step 7a),
+also install gpiozero — deliberately not in `requirements.txt` since it's
+Pi-only and would be dead weight on a dev machine:
+
+```bash
+pip install gpiozero
+```
+
+Without it, [`nazrah/light.py`](../nazrah/light.py)'s `GpioLightController`
+just fails to import and `main.py` falls back to `NoOpLightController`
+automatically (logs what it would have done instead of controlling real
+hardware) — so this step is optional if you don't have a relay wired up
+yet.
+
 ## 6. Check the camera
 
 ```bash
@@ -85,7 +99,29 @@ Should print `True`. If you get a permissions error, add your user to the
 sudo usermod -aG video $USER
 ```
 
-## 7. Check audio output
+## 7. Wire up the light (optional)
+
+The home screen's "turn off light" button drives a relay via
+[`nazrah/light.py`](../nazrah/light.py) — a relay module or relay-driven
+light wired to GPIO pin 17 by default (`config.LIGHT_GPIO_PIN`). CrowPi
+kits typically include a relay module on the breadboard for exactly this
+kind of experiment.
+
+Check it's actually controllable before trusting the app with it:
+
+```bash
+python3 -c "
+from gpiozero import OutputDevice
+relay = OutputDevice(17, active_high=True, initial_value=True)
+relay.off()
+"
+```
+
+If the wired light/relay turns off, you're set. Skip this step entirely
+if you don't have hardware wired up yet — the app runs fine without it
+(see the gpiozero note in step 5).
+
+## 8. Check audio output
 
 CrowPi's speaker routing depends on how it's wired (3.5mm jack, HDMI, or
 USB, depending on your CrowPi version) — set the right output device:
@@ -101,7 +137,7 @@ Test it:
 espeak "hello"
 ```
 
-## 8. Run it
+## 9. Run it
 
 Make sure you're running on the Pi's actual desktop (not a headless SSH
 session with no display attached) — Tkinter needs `$DISPLAY` set to a real
@@ -112,6 +148,13 @@ screen, run:
 export DISPLAY=:0
 ```
 
+If you set up [caregiver alerts](../README.md#caregiver-alerts-optional),
+set the topic too (same value the caregiver's ntfy app is subscribed to):
+
+```bash
+export NAZRAH_NTFY_TOPIC="your-long-random-topic-name"
+```
+
 Then:
 
 ```bash
@@ -120,6 +163,9 @@ python3 -m nazrah.main
 
 First run downloads the face landmark model (~4MB) — needs internet once,
 then it's cached in `nazrah/models/` and works offline after that.
+Calibration runs once at startup, then lands on the home screen (light
+off / needs) — see "How it works" in the main [README](../README.md) for
+the full session flow.
 
 ## Troubleshooting
 
@@ -138,6 +184,13 @@ then it's cached in `nazrah/models/` and works offline after that.
   more authentic anyway) and drop them into an audio bank directory, then
   pass `audio_bank_dir=` to `TTSEngine` in `nazrah/main.py` — see
   "Adding phrases" in the main [README](../README.md).
+- **"إطفاء الضوء" doesn't actually turn anything off** — check the console
+  output right after startup for `[Light] (no hardware configured)...`,
+  which means `GpioLightController` failed to initialize (gpiozero not
+  installed, or `OutputDevice(17, ...)` couldn't claim the pin) and it
+  silently fell back to the no-op controller. Re-run the check command
+  from step 7 directly to isolate whether it's a wiring issue or a
+  software one.
 
 ## Optional: launch on boot
 

@@ -29,12 +29,19 @@ class GpioLightController(LightController):
     def __init__(self, pin=17):
         try:
             from gpiozero import OutputDevice
-        except ImportError as exc:
+
+            self._relay = OutputDevice(pin, active_high=True, initial_value=True)
+        except Exception as exc:
+            # Covers gpiozero not being installed at all, and gpiozero
+            # being installed but failing to actually claim the pin (wrong
+            # pin, no real GPIO hardware, permissions) — both mean the
+            # same thing to the caller: this controller isn't usable here,
+            # so fall back to NoOpLightController rather than crash the
+            # whole app over a light that isn't wired up correctly.
             raise RuntimeError(
-                "gpiozero is not installed. GpioLightController only runs on "
-                "a Raspberry Pi with a relay/light wired to a GPIO pin."
+                "Could not set up GPIO light control (gpiozero not "
+                "installed, or the pin/hardware isn't usable here)."
             ) from exc
-        self._relay = OutputDevice(pin, active_high=True, initial_value=True)
 
     def turn_off(self):
         self._relay.off()
