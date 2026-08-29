@@ -1,6 +1,6 @@
 import pytest
 
-from nazrah.calibration import Calibrator, median_point
+from nazrah.calibration import Calibrator, load_calibration, median_point, save_calibration
 
 
 def test_nearest_target_before_any_samples_raises():
@@ -52,3 +52,32 @@ def test_median_point_ignores_a_single_outlier():
 def test_median_point_averages_odd_count_per_axis():
     points = [(0.1, 0.9), (0.2, 0.8), (0.3, 0.7)]
     assert median_point(points) == (0.2, 0.8)
+
+
+def test_save_and_load_calibration_round_trip(tmp_path):
+    path = tmp_path / "calibration.json"
+    original = Calibrator()
+    original.add_sample((0.1, 0.2), (100, 200))
+    original.add_sample((0.3, 0.4), (300, 400))
+
+    save_calibration(original, path, screen_w=1920, screen_h=1080)
+    loaded = load_calibration(path, screen_w=1920, screen_h=1080)
+
+    assert loaded.num_samples == 2
+    assert loaded.nearest_target((0.1, 0.2)) == (100, 200)
+    assert loaded.nearest_target((0.3, 0.4)) == (300, 400)
+
+
+def test_load_calibration_missing_file_raises(tmp_path):
+    with pytest.raises(FileNotFoundError):
+        load_calibration(tmp_path / "does-not-exist.json", screen_w=1920, screen_h=1080)
+
+
+def test_load_calibration_rejects_mismatched_screen_size(tmp_path):
+    path = tmp_path / "calibration.json"
+    calibrator = Calibrator()
+    calibrator.add_sample((0.1, 0.2), (100, 200))
+    save_calibration(calibrator, path, screen_w=1920, screen_h=1080)
+
+    with pytest.raises(ValueError):
+        load_calibration(path, screen_w=1280, screen_h=720)

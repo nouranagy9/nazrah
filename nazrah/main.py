@@ -1,12 +1,15 @@
+import os
 import threading
 import time
 
 from . import phrases as phrase_data
-from .calibration import Calibrator, median_point
+from .calibration import Calibrator, load_calibration, median_point, save_calibration
 from .camera import WebcamSource
 from .config import (
+    CALIBRATION_FILE,
     CALIBRATION_POINTS_RATIO,
     DWELL_SECONDS,
+    FORCE_RECALIBRATE,
     GRID_COLUMNS,
     LIGHT_GPIO_PIN,
     NTFY_TOPIC,
@@ -39,7 +42,7 @@ NEEDS_ITEMS = [
 ] + [GridItem("home", "\U0001F3E0", "الرئيسية")]
 
 
-def run_calibration(ui, tracker, camera):
+def run_calibration(ui, tracker, camera, screen_w, screen_h):
     """Grid calibration (size set by config.CALIBRATION_POINTS_RATIO): look
     at each highlighted point in turn and hold still while samples are
     collected. Naturally turning your head toward each point (not just
@@ -48,8 +51,6 @@ def run_calibration(ui, tracker, camera):
     which screen (home/needs) is currently shown, so it only needs to run
     once per session even though the UI switches screens afterward."""
     calibrator = Calibrator()
-    screen_w = ui.root.winfo_screenwidth()
-    screen_h = ui.root.winfo_screenheight()
 
     for rx, ry in CALIBRATION_POINTS_RATIO:
         target = (int(rx * screen_w), int(ry * screen_h))
@@ -141,9 +142,28 @@ def main():
 
     ui = GridUI(on_select=on_select, items=HOME_ITEMS, columns=2)
     ui.update()
+    screen_w = ui.root.winfo_screenwidth()
+    screen_h = ui.root.winfo_screenheight()
 
-    calibrator = run_calibration(ui, tracker, camera)
-    print(f"Calibration done with {calibrator.num_samples} samples", flush=True)
+    calibrator = None
+    if not FORCE_RECALIBRATE and os.path.isfile(CALIBRATION_FILE):
+        try:
+            calibrator = load_calibration(CALIBRATION_FILE, screen_w, screen_h)
+            print(
+                f"Loaded saved calibration ({calibrator.num_samples} samples) from "
+                f"{CALIBRATION_FILE} — skipping calibration. Set NAZRAH_RECALIBRATE=1 "
+                "to force a fresh one.",
+                flush=True,
+            )
+        except (OSError, ValueError, KeyError) as exc:
+            print(f"Could not use saved calibration ({exc}) — running a fresh one.", flush=True)
+            calibrator = None
+
+    if calibrator is None:
+        calibrator = run_calibration(ui, tracker, camera, screen_w, screen_h)
+        print(f"Calibration done with {calibrator.num_samples} samples", flush=True)
+        save_calibration(calibrator, CALIBRATION_FILE, screen_w, screen_h)
+        print(f"Saved calibration to {CALIBRATION_FILE}", flush=True)
 
     try:
         frame_count = 0

@@ -1,3 +1,4 @@
+import json
 import statistics
 
 
@@ -50,6 +51,11 @@ class Calibrator:
     def num_samples(self):
         return len(self._eye_points)
 
+    @property
+    def samples(self):
+        """List of (eye_pos, screen_pos) pairs collected so far."""
+        return list(zip(self._eye_points, self._screen_points))
+
     def nearest_target(self, eye_pos):
         """Returns the screen_pos of whichever calibration sample's eye_pos
         is closest (Euclidean distance) to the given eye_pos."""
@@ -61,3 +67,40 @@ class Calibrator:
             + (self._eye_points[i][1] - eye_pos[1]) ** 2,
         )
         return self._screen_points[best_index]
+
+
+def save_calibration(calibrator, path, screen_w, screen_h):
+    """Saves calibration samples to a JSON file so a session doesn't have
+    to redo the full calibration flow every time the app starts — see
+    load_calibration and main.py. Records the screen size the calibration
+    was done against, since the saved screen-pixel coordinates only mean
+    anything for that exact resolution."""
+    data = {
+        "screen_w": screen_w,
+        "screen_h": screen_h,
+        "samples": [
+            {"eye": list(eye), "screen": list(screen)} for eye, screen in calibrator.samples
+        ],
+    }
+    with open(path, "w", encoding="utf-8") as f:
+        json.dump(data, f)
+
+
+def load_calibration(path, screen_w, screen_h):
+    """Loads a previously saved calibration. Raises FileNotFoundError if no
+    file exists there, or ValueError if it was saved for a different
+    screen resolution than the one given (its screen-pixel coordinates
+    wouldn't line up with the current grid)."""
+    with open(path, "r", encoding="utf-8") as f:
+        data = json.load(f)
+
+    if data.get("screen_w") != screen_w or data.get("screen_h") != screen_h:
+        raise ValueError(
+            f"Saved calibration was for {data.get('screen_w')}x{data.get('screen_h')}, "
+            f"but the current screen is {screen_w}x{screen_h}"
+        )
+
+    calibrator = Calibrator()
+    for entry in data["samples"]:
+        calibrator.add_sample(tuple(entry["eye"]), tuple(entry["screen"]))
+    return calibrator

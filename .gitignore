@@ -7,3 +7,8 @@ __pycache__/
 nazrah/models/
 
 usage_log.csv
+
+# Saved by nazrah.calibration.save_calibration() — specific to one
+# camera's position/angle and one screen's resolution, not something to
+# commit.
+calibration_data.json

@@ -58,7 +58,14 @@ cultural claim to hold up in front of judges.
    distinguishable targets is bounded by how many points you calibrate;
    `nazrah/ui.py`'s `hit_test` maps each calibration point to whichever
    phrase cell's center is nearest it. Pushing the grid size higher has a
-   ceiling — see the note in `config.py`.
+   ceiling — see the note in `config.py`. A successful calibration is
+   saved to `calibration_data.json` (`config.CALIBRATION_FILE`) and
+   reloaded automatically on the next launch — real for a patient with
+   limited mobility, redoing a multi-minute calibration every time the
+   device turns on isn't reasonable. It's tied to the exact screen
+   resolution it was done on (a mismatch triggers a fresh calibration
+   automatically); set `NAZRAH_RECALIBRATE=1` to force a fresh one anyway
+   (camera moved, different person using the device, etc).
 3. **Dwell-time selection** — [`nazrah/dwell.py`](nazrah/dwell.py) selects
    a phrase after the gaze holds on it (`config.DWELL_SECONDS`, currently
    2.5s). Chosen over
@@ -139,6 +146,10 @@ highlighted point and hold still — press Escape anytime to exit
 fullscreen), then lands on the home screen: two cells, "إطفاء الضوء"
 (turn off the light) and "الاحتياجات" (needs — the phrase grid). From the
 needs screen, a "🏠 الرئيسية" cell goes back home.
+
+Calibration only happens once — later launches reuse the saved
+calibration and skip straight to the home screen (see `NAZRAH_RECALIBRATE`
+above if you need to force a fresh one).
 
 ### Caregiver alerts (optional)
 

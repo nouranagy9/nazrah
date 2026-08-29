@@ -26,6 +26,18 @@ TARGET_CONFIRM_FRAMES = 2
 CAMERA_INDEX = 0
 GRID_COLUMNS = 4
 
+# Where a successful calibration gets saved, so the app can skip
+# calibration on the next launch instead of redoing it every time — a real
+# problem for a patient with limited mobility turning the device on daily.
+# Gitignored: it's specific to one camera's position/angle and one
+# screen's resolution, not something to commit.
+CALIBRATION_FILE = os.environ.get("NAZRAH_CALIBRATION_FILE", "calibration_data.json")
+
+# Set NAZRAH_RECALIBRATE=1 to ignore any saved calibration and force a
+# fresh one — e.g. after moving the camera or screen, or a different
+# person is using the device now.
+FORCE_RECALIBRATE = os.environ.get("NAZRAH_RECALIBRATE") == "1"
+
 # GPIO pin the light/relay is wired to on the deployed Pi (see light.py).
 # Irrelevant on a dev machine with no such hardware — GpioLightController
 # just fails to import gpiozero there and main.py falls back to
