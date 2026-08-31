@@ -21,8 +21,8 @@ set in [`nazrah/phrases.py`](nazrah/phrases.py) is organized around:
 
 - **Prayer** (الصلاة, وضوء) — needs tied to prayer times, which structure
   the day in a way most AAC tools never account for.
-- **Family, by the terms actually used** (يمّه، بابا، جدّي، جدتي) —
-  colloquial Gulf terms of address, not formal dictionary Arabic.
+- **Family, by the terms actually used** (يمّه، يبى) — colloquial Gulf
+  terms of address, not formal dictionary Arabic.
 - **Basic needs and responses** phrased the way they're actually said, not
   literal translations of an English AAC vocabulary list.
 

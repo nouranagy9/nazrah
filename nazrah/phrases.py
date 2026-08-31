@@ -34,7 +34,7 @@ PHRASES = [
 
     # أفراد العائلة — Family members
     Phrase("mother", "family", "يمّه", "yumma", "\U0001F469"),
-    Phrase("father", "family", "بابا", "baba", "\U0001F468"),
+    Phrase("father", "family", "يبى", "yaba", "\U0001F468"),
 
     # طلبات ومشاعر — Requests & feelings
     Phrase("yes", "responses", "نعم", "na'am", "✅"),
