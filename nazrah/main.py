@@ -1,4 +1,5 @@
 import os
+import queue
 import threading
 import time
 
@@ -103,9 +104,26 @@ def main():
 
     screen = SCREEN_HOME
 
+    # A single persistent worker, not one thread per phrase: pyttsx3 can be
+    # slow (or hang outright, as observed on this Windows setup), and
+    # calling it on the same thread driving gaze tracking froze the whole
+    # app right after a phrase was selected. A thread per call fixed that
+    # but let two overlapping calls collide in pyttsx3's shared run-loop
+    # state ("run loop already started") if a phrase was selected again
+    # before the first finished speaking — this worker guarantees only one
+    # speak() is ever in flight, queuing the rest instead. See tts.py.
+    tts_queue = queue.Queue()
+
+    def tts_worker():
+        while True:
+            phrase = tts_queue.get()
+            tts.speak(phrase)
+
+    threading.Thread(target=tts_worker, daemon=True).start()
+
     def speak_phrase(phrase_id):
         phrase = phrase_data.by_id(phrase_id)
-        tts.speak(phrase)
+        tts_queue.put(phrase)
         logger.log_selection(phrase)
         if phrase.urgent and notifier is not None:
             # Runs on a background thread so a slow/unreachable network
@@ -165,15 +183,34 @@ def main():
         save_calibration(calibrator, CALIBRATION_FILE, screen_w, screen_h)
         print(f"Saved calibration to {CALIBRATION_FILE}", flush=True)
 
+    # Threshold for the [SLOW] warnings below: a single loop iteration
+    # (camera read, gaze inference, or a Tkinter update) taking longer than
+    # this is the kind of thing that reads as the whole app "freezing" or
+    # "lagging" to someone using it, even though the process is still
+    # alive — worth flagging loudly rather than silently absorbing.
+    _SLOW_STEP_SECONDS = 0.5
+
     try:
         frame_count = 0
+        fps_window_start = time.monotonic()
         while not ui.closed:
+            step_start = time.monotonic()
             frame = camera.read()
+            step_end = time.monotonic()
+            if step_end - step_start > _SLOW_STEP_SECONDS:
+                print(f"[SLOW] camera.read() took {step_end - step_start:.2f}s", flush=True)
             if frame is None:
                 ui.update()
                 continue
 
+            step_start = step_end
             eye_pos = tracker.get_eye_position(frame)
+            step_end = time.monotonic()
+            if step_end - step_start > _SLOW_STEP_SECONDS:
+                print(
+                    f"[SLOW] tracker.get_eye_position() took {step_end - step_start:.2f}s",
+                    flush=True,
+                )
             raw_target_id = None
             screen_x = screen_y = None
             if eye_pos is not None and calibrator.num_samples > 0:
@@ -188,8 +225,11 @@ def main():
 
             frame_count += 1
             if frame_count % 15 == 0:
+                now = time.monotonic()
+                fps = 15 / (now - fps_window_start) if now > fps_window_start else 0
+                fps_window_start = now
                 print(
-                    f"eye_pos={eye_pos} screen=({screen_x}, {screen_y}) "
+                    f"fps={fps:.1f} eye_pos={eye_pos} screen=({screen_x}, {screen_y}) "
                     f"raw={raw_target_id} smoothed={target_id} progress={dwell.progress:.2f}",
                     flush=True,
                 )
@@ -199,7 +239,11 @@ def main():
             if fired:
                 on_select(fired)
 
+            step_start = time.monotonic()
             ui.update()
+            step_end = time.monotonic()
+            if step_end - step_start > _SLOW_STEP_SECONDS:
+                print(f"[SLOW] ui.update() took {step_end - step_start:.2f}s", flush=True)
     except KeyboardInterrupt:
         pass
     finally:
