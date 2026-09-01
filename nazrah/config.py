@@ -39,10 +39,12 @@ CALIBRATION_FILE = os.environ.get("NAZRAH_CALIBRATION_FILE", "calibration_data.j
 FORCE_RECALIBRATE = os.environ.get("NAZRAH_RECALIBRATE") == "1"
 
 # GPIO pin the light/relay is wired to on the deployed Pi (see light.py).
-# Irrelevant on a dev machine with no such hardware — GpioLightController
-# just fails to import gpiozero there and main.py falls back to
-# NoOpLightController automatically.
-LIGHT_GPIO_PIN = 17
+# CrowPi's built-in relay module is wired to pin 40 / GPIO21 (per Elecrow's
+# CrowPi manual's sensor control table) — not the arbitrary default we'd
+# picked before actually checking. Irrelevant on a dev machine with no
+# such hardware — GpioLightController just fails to import gpiozero there
+# and main.py falls back to NoOpLightController automatically.
+LIGHT_GPIO_PIN = 21
 
 # Calibration grid targets as (x_ratio, y_ratio) of the screen, sized to
 # exactly match the phrase grid's own columns x rows — a calibration grid

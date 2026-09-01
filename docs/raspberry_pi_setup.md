@@ -102,17 +102,23 @@ sudo usermod -aG video $USER
 ## 7. Wire up the light (optional)
 
 The home screen's "turn off light" button drives a relay via
-[`nazrah/light.py`](../nazrah/light.py) — a relay module or relay-driven
-light wired to GPIO pin 17 by default (`config.LIGHT_GPIO_PIN`). CrowPi
-kits typically include a relay module on the breadboard for exactly this
-kind of experiment.
+[`nazrah/light.py`](../nazrah/light.py) — GPIO pin 21 by default
+(`config.LIGHT_GPIO_PIN`), matching CrowPi's built-in relay module (pin
+40 / GPIO21 per Elecrow's CrowPi manual). If you're wiring up a different
+relay on a different pin, update `LIGHT_GPIO_PIN` to match.
+
+**Safety note straight from Elecrow's manual**: this relay is rated for
+low-voltage breadboard use only — it must never be wired to a
+110V/220V mains circuit (a real lamp's wall plug, an air conditioner,
+etc). Switching an actual room light needs a proper mains-rated smart
+plug/relay instead, not this one.
 
 Check it's actually controllable before trusting the app with it:
 
 ```bash
 python3 -c "
 from gpiozero import OutputDevice
-relay = OutputDevice(17, active_high=True, initial_value=True)
+relay = OutputDevice(21, active_high=True, initial_value=True)
 relay.off()
 "
 ```
@@ -187,7 +193,7 @@ the full session flow.
 - **"إطفاء الضوء" doesn't actually turn anything off** — check the console
   output right after startup for `[Light] (no hardware configured)...`,
   which means `GpioLightController` failed to initialize (gpiozero not
-  installed, or `OutputDevice(17, ...)` couldn't claim the pin) and it
+  installed, or `OutputDevice(21, ...)` couldn't claim the pin) and it
   silently fell back to the no-op controller. Re-run the check command
   from step 7 directly to isolate whether it's a wiring issue or a
   software one.
