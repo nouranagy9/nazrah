@@ -9,6 +9,7 @@ from .camera import WebcamSource
 from .config import (
     CALIBRATION_FILE,
     CALIBRATION_POINTS_RATIO,
+    CAMERA_INDEX,
     DWELL_SECONDS,
     FORCE_RECALIBRATE,
     GRID_COLUMNS,
@@ -82,7 +83,7 @@ def run_calibration(ui, tracker, camera, screen_w, screen_h):
 
 
 def main():
-    camera = WebcamSource()
+    camera = WebcamSource(index=CAMERA_INDEX)
     tracker = GazeTracker()
     logger = UsageLogger()
     tts = TTSEngine()

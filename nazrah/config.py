@@ -23,7 +23,12 @@ NTFY_TOPIC = os.environ.get("NAZRAH_NTFY_TOPIC")
 # be large to filter noise.
 TARGET_CONFIRM_FRAMES = 2
 
-CAMERA_INDEX = 0
+# Which /dev/videoN (or Windows camera index) WebcamSource opens. A device
+# with multiple cameras attached — e.g. CrowPi's built-in low-res camera
+# plus a separate external USB webcam — won't necessarily put the one you
+# actually want at index 0; check with `v4l2-ctl --list-devices` on Linux
+# and override via NAZRAH_CAMERA_INDEX if needed rather than guessing.
+CAMERA_INDEX = int(os.environ.get("NAZRAH_CAMERA_INDEX", "0"))
 GRID_COLUMNS = 4
 
 # Where a successful calibration gets saved, so the app can skip
