@@ -107,16 +107,26 @@ class GridUI:
         font_file is set — as a bitmap via Pillow (see __init__)."""
         if self._font_file and os.path.isfile(self._font_file):
             from PIL import Image, ImageDraw, ImageFont, ImageTk
-            import arabic_reshaper
-            from bidi.algorithm import get_display
 
-            shaped = get_display(arabic_reshaper.reshape(item.text))
             font = ImageFont.truetype(self._font_file, 22)
+            # direction="rtl" hands shaping AND reordering to Pillow's
+            # bundled raqm (harfbuzz + fribidi) in one pass. An earlier
+            # version of this manually reshaped letterforms with
+            # arabic_reshaper and then bidi-reordered with python-bidi —
+            # raqm does both itself, and doing both again on top of it
+            # reordered an already-correctly-ordered string, which is what
+            # made phrase text render backwards on real hardware.
             probe = ImageDraw.Draw(Image.new("RGBA", (1, 1)))
-            x0, y0, x1, y1 = probe.textbbox((0, 0), shaped, font=font)
+            x0, y0, x1, y1 = probe.textbbox(
+                (0, 0), item.text, font=font, direction="rtl"
+            )
             img = Image.new("RGBA", (x1 - x0 + 8, y1 - y0 + 8), (0, 0, 0, 0))
             ImageDraw.Draw(img).text(
-                (4 - x0, 4 - y0), shaped, font=font, fill=(255, 255, 255, 255)
+                (4 - x0, 4 - y0),
+                item.text,
+                font=font,
+                fill=(255, 255, 255, 255),
+                direction="rtl",
             )
             photo = ImageTk.PhotoImage(img)
             self._text_photos[item.id] = photo  # keep alive — Tk drops GC'd images
