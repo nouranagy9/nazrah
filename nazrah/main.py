@@ -13,6 +13,7 @@ from .config import (
     DWELL_SECONDS,
     FORCE_RECALIBRATE,
     GRID_COLUMNS,
+    GRID_FONT_FAMILY,
     LIGHT_GPIO_PIN,
     NTFY_TOPIC,
     TARGET_CONFIRM_FRAMES,
@@ -159,7 +160,12 @@ def main():
                 ui.flash_selection(cell_id)
                 speak_phrase(cell_id)
 
-    ui = GridUI(on_select=on_select, items=HOME_ITEMS, columns=2)
+    ui = GridUI(
+        on_select=on_select,
+        items=HOME_ITEMS,
+        columns=2,
+        font_family=GRID_FONT_FAMILY,
+    )
     ui.update()
     screen_w = ui.root.winfo_screenwidth()
     screen_h = ui.root.winfo_screenheight()

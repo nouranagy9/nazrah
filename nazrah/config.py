@@ -1,5 +1,6 @@
 import math
 import os
+import platform
 
 from .phrases import PHRASES
 
@@ -50,6 +51,21 @@ FORCE_RECALIBRATE = os.environ.get("NAZRAH_RECALIBRATE") == "1"
 # such hardware — GpioLightController just fails to import gpiozero there
 # and main.py falls back to NoOpLightController automatically.
 LIGHT_GPIO_PIN = 21
+
+# Font family for the grid labels (see ui.py). Tk has no font-fallback
+# chain — an unavailable family silently substitutes some default, which
+# on Windows still renders Arabic fine (the OS does its own glyph
+# substitution), but on a fresh Raspberry Pi OS install there's no
+# Arabic-capable font installed by default, so phrase text on the grid
+# rendered as blank space (found via real hardware testing on the CrowPi).
+# Fixed by installing `fonts-noto-core` (apt) on the Pi and pointing this
+# at "Noto Sans Arabic" there specifically, rather than hoping whatever Tk
+# substitutes happens to cover Arabic. Override with NAZRAH_GRID_FONT if a
+# different font is preferred.
+GRID_FONT_FAMILY = os.environ.get(
+    "NAZRAH_GRID_FONT",
+    "Segoe UI" if platform.system() == "Windows" else "Noto Sans Arabic",
+)
 
 # Calibration grid targets as (x_ratio, y_ratio) of the screen, sized to
 # exactly match the phrase grid's own columns x rows — a calibration grid

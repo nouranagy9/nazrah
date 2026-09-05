@@ -20,8 +20,9 @@ class GridUI:
     dimensions, not on what's currently drawn.
     """
 
-    def __init__(self, on_select, items, columns):
+    def __init__(self, on_select, items, columns, font_family):
         self.on_select = on_select
+        self._font_family = font_family
         self.root = tk.Tk()
         self.root.title("نظرة — Nazrah")
         self.root.configure(bg="black")
@@ -66,7 +67,7 @@ class GridUI:
             cell = tk.Label(
                 frame,
                 text=f"{item.icon}\n{item.text}",
-                font=("Segoe UI", 20),
+                font=(self._font_family, 20),
                 bg="#1e1e1e",
                 fg="white",
                 relief="ridge",
