@@ -7,6 +7,14 @@ from collections import namedtuple
 # home screen's cells ("turn off light", "needs") aren't phrases at all.
 GridItem = namedtuple("GridItem", ["id", "icon", "text"])
 
+# Sized for a patient who may be viewing the screen from a bed at some
+# distance, on a full-HD (1920x1080) kiosk display with only a handful of
+# large cells — legibility matters far more here than fitting more on
+# screen. Bumped up from an initial pass that looked fine on a dev monitor
+# but was reported too small once actually seen on the deployed screen.
+ICON_FONT_SIZE = 64
+TEXT_FONT_SIZE = 40
+
 
 class GridUI:
     """Tkinter grid of selectable cells with Arabic labels. Call
@@ -36,16 +44,15 @@ class GridUI:
         # font file installed on the system can ever reach it.
         #
         # When font_file points at an actual TrueType font, phrase text is
-        # rendered to a bitmap with Pillow (which links its own FreeType,
-        # entirely bypassing Tk's font engine) and shaped with
-        # arabic_reshaper + python-bidi — plain PIL text drawing doesn't
-        # join Arabic letterforms or reorder for right-to-left on its own.
-        # That bitmap is shown via a plain Label(image=...), which Tk can
-        # always display regardless of its own font capabilities. Left
-        # None (the default, and what the Windows dev setup uses), cells
-        # fall back to normal Tk-drawn text, since Windows already renders
-        # Arabic correctly via the OS's own font substitution.
+        # rendered to a bitmap with Pillow (which links its own FreeType +
+        # raqm, entirely bypassing Tk's font engine) instead. That bitmap
+        # is shown via a plain Label(image=...), which Tk can always
+        # display regardless of its own font capabilities. Left None (the
+        # default, and what the Windows dev setup uses), cells fall back
+        # to normal Tk-drawn text, since Windows already renders Arabic
+        # correctly via the OS's own font substitution.
         self._font_file = font_file
+        self._pil_font = None  # lazily loaded once, not per cell — see show()
         self._text_photos = {}
         self.root = tk.Tk()
         self.root.title("نظرة — Nazrah")
@@ -93,7 +100,11 @@ class GridUI:
             cell.grid(row=row, column=col, padx=4, pady=4, sticky="nsew")
 
             icon_label = tk.Label(
-                cell, text=item.icon, font=(self._font_family, 28), bg="#1e1e1e", fg="white"
+                cell,
+                text=item.icon,
+                font=(self._font_family, ICON_FONT_SIZE),
+                bg="#1e1e1e",
+                fg="white",
             )
             icon_label.pack(expand=True)
 
@@ -108,7 +119,13 @@ class GridUI:
         if self._font_file and os.path.isfile(self._font_file):
             from PIL import Image, ImageDraw, ImageFont, ImageTk
 
-            font = ImageFont.truetype(self._font_file, 22)
+            if self._pil_font is None:
+                # Loaded once and reused, not once per cell per screen —
+                # re-reading/parsing the font file on every single cell
+                # measured at ~380ms each on the Pi, adding up to a
+                # multi-second freeze on every screen switch.
+                self._pil_font = ImageFont.truetype(self._font_file, TEXT_FONT_SIZE)
+            font = self._pil_font
             # direction="rtl" hands shaping AND reordering to Pillow's
             # bundled raqm (harfbuzz + fribidi) in one pass. An earlier
             # version of this manually reshaped letterforms with
@@ -133,7 +150,11 @@ class GridUI:
             return tk.Label(parent, image=photo, bg="#1e1e1e")
 
         return tk.Label(
-            parent, text=item.text, font=(self._font_family, 20), bg="#1e1e1e", fg="white"
+            parent,
+            text=item.text,
+            font=(self._font_family, TEXT_FONT_SIZE),
+            bg="#1e1e1e",
+            fg="white",
         )
 
     def _set_cell_bg(self, cell_id, color):
