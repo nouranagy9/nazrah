@@ -2,3 +2,6 @@ opencv-python>=4.10
 mediapipe>=1.0.1
 pyttsx3>=2.90
 numpy>=1.26
+Pillow>=10.0
+arabic-reshaper>=3.0
+python-bidi>=0.4

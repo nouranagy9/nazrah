@@ -14,6 +14,7 @@ from .config import (
     FORCE_RECALIBRATE,
     GRID_COLUMNS,
     GRID_FONT_FAMILY,
+    GRID_FONT_FILE,
     LIGHT_GPIO_PIN,
     NTFY_TOPIC,
     TARGET_CONFIRM_FRAMES,
@@ -165,6 +166,7 @@ def main():
         items=HOME_ITEMS,
         columns=2,
         font_family=GRID_FONT_FAMILY,
+        font_file=GRID_FONT_FILE,
     )
     ui.update()
     screen_w = ui.root.winfo_screenwidth()

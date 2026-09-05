@@ -1,3 +1,4 @@
+import os
 import tkinter as tk
 from collections import namedtuple
 
@@ -20,9 +21,32 @@ class GridUI:
     dimensions, not on what's currently drawn.
     """
 
-    def __init__(self, on_select, items, columns, font_family):
+    def __init__(self, on_select, items, columns, font_family, font_file=None):
         self.on_select = on_select
         self._font_family = font_family
+        # Tk's native font engine on the deployed Pi turned out to only see
+        # 28 ancient X-core PostScript fonts — none of them Arabic-capable —
+        # regardless of what's installed system-wide (see config.py's
+        # GRID_FONT_FAMILY comment). Found on real hardware: icons rendered
+        # but every phrase's Arabic text was just blank space. Root cause:
+        # the Python 3.11 interpreter this project runs under on the Pi
+        # (installed via `uv` specifically to get a working mediapipe —
+        # see docs/raspberry_pi_setup.md) bundles its own private Tcl/Tk
+        # 9.0 that has no Xft/fontconfig/TrueType support at all, so no
+        # font file installed on the system can ever reach it.
+        #
+        # When font_file points at an actual TrueType font, phrase text is
+        # rendered to a bitmap with Pillow (which links its own FreeType,
+        # entirely bypassing Tk's font engine) and shaped with
+        # arabic_reshaper + python-bidi — plain PIL text drawing doesn't
+        # join Arabic letterforms or reorder for right-to-left on its own.
+        # That bitmap is shown via a plain Label(image=...), which Tk can
+        # always display regardless of its own font capabilities. Left
+        # None (the default, and what the Windows dev setup uses), cells
+        # fall back to normal Tk-drawn text, since Windows already renders
+        # Arabic correctly via the OS's own font substitution.
+        self._font_file = font_file
+        self._text_photos = {}
         self.root = tk.Tk()
         self.root.title("نظرة — Nazrah")
         self.root.configure(bg="black")
@@ -51,6 +75,7 @@ class GridUI:
 
         self._cells = {}
         self._active_id = None
+        self._text_photos = {}
 
         frame = tk.Frame(self.root, bg="black")
         frame.pack(expand=True, fill="both")
@@ -64,24 +89,55 @@ class GridUI:
 
         for index, item in enumerate(items):
             row, col = divmod(index, columns)
-            cell = tk.Label(
-                frame,
-                text=f"{item.icon}\n{item.text}",
-                font=(self._font_family, 20),
-                bg="#1e1e1e",
-                fg="white",
-                relief="ridge",
-                borderwidth=2,
-            )
+            cell = tk.Frame(frame, bg="#1e1e1e", relief="ridge", borderwidth=2)
             cell.grid(row=row, column=col, padx=4, pady=4, sticky="nsew")
+
+            icon_label = tk.Label(
+                cell, text=item.icon, font=(self._font_family, 28), bg="#1e1e1e", fg="white"
+            )
+            icon_label.pack(expand=True)
+
+            text_widget = self._make_text_label(cell, item)
+            text_widget.pack(expand=True)
+
             self._cells[item.id] = cell
+
+    def _make_text_label(self, parent, item):
+        """Renders a cell's phrase text as a plain Tk label, or — when
+        font_file is set — as a bitmap via Pillow (see __init__)."""
+        if self._font_file and os.path.isfile(self._font_file):
+            from PIL import Image, ImageDraw, ImageFont, ImageTk
+            import arabic_reshaper
+            from bidi.algorithm import get_display
+
+            shaped = get_display(arabic_reshaper.reshape(item.text))
+            font = ImageFont.truetype(self._font_file, 22)
+            probe = ImageDraw.Draw(Image.new("RGBA", (1, 1)))
+            x0, y0, x1, y1 = probe.textbbox((0, 0), shaped, font=font)
+            img = Image.new("RGBA", (x1 - x0 + 8, y1 - y0 + 8), (0, 0, 0, 0))
+            ImageDraw.Draw(img).text(
+                (4 - x0, 4 - y0), shaped, font=font, fill=(255, 255, 255, 255)
+            )
+            photo = ImageTk.PhotoImage(img)
+            self._text_photos[item.id] = photo  # keep alive — Tk drops GC'd images
+            return tk.Label(parent, image=photo, bg="#1e1e1e")
+
+        return tk.Label(
+            parent, text=item.text, font=(self._font_family, 20), bg="#1e1e1e", fg="white"
+        )
+
+    def _set_cell_bg(self, cell_id, color):
+        cell = self._cells[cell_id]
+        cell.configure(bg=color)
+        for child in cell.winfo_children():
+            child.configure(bg=color)
 
     def set_active_cell(self, cell_id, progress=0.0):
         if cell_id != self._active_id and self._active_id is not None:
-            self._cells[self._active_id].configure(bg="#1e1e1e")
+            self._set_cell_bg(self._active_id, "#1e1e1e")
         self._active_id = cell_id
         if cell_id is not None:
-            self._cells[cell_id].configure(bg=self._progress_color(progress))
+            self._set_cell_bg(cell_id, self._progress_color(progress))
 
     @staticmethod
     def _progress_color(progress):
@@ -89,12 +145,11 @@ class GridUI:
         return f"#1e{green:02x}3c"
 
     def flash_selection(self, cell_id):
-        cell = self._cells[cell_id]
-        cell.configure(bg="#2e7d32")
+        self._set_cell_bg(cell_id, "#2e7d32")
 
         def revert():
             try:
-                cell.configure(bg="#1e1e1e")
+                self._set_cell_bg(cell_id, "#1e1e1e")
             except tk.TclError:
                 # The cell's widget may have been destroyed by a show()
                 # (screen switch) or window close in the 400ms since this

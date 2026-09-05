@@ -67,6 +67,19 @@ GRID_FONT_FAMILY = os.environ.get(
     "Segoe UI" if platform.system() == "Windows" else "Noto Sans Arabic",
 )
 
+# A real TrueType font FILE, used only as a fallback path for when Tk's own
+# font engine can't render Arabic at all (see ui.py's GridUI.__init__ for
+# why — the Pi's Python 3.11 interpreter's bundled Tk has no TrueType
+# support whatsoever, so GRID_FONT_FAMILY above never actually reaches a
+# real Arabic font there no matter what's installed). Left unset on
+# Windows, where Tk's native rendering already works fine.
+GRID_FONT_FILE = os.environ.get(
+    "NAZRAH_GRID_FONT_FILE",
+    None
+    if platform.system() == "Windows"
+    else "/usr/share/fonts/truetype/noto/NotoSansArabic-Regular.ttf",
+)
+
 # Calibration grid targets as (x_ratio, y_ratio) of the screen, sized to
 # exactly match the phrase grid's own columns x rows — a calibration grid
 # that doesn't line up with the actual grid was a real, hard-to-spot bug
