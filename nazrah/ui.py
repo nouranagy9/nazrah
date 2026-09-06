@@ -15,6 +15,17 @@ GridItem = namedtuple("GridItem", ["id", "icon", "text"])
 ICON_FONT_SIZE = 64
 TEXT_FONT_SIZE = 40
 
+# Green + white — the Saudi flag's colors, fitting for a device built for a
+# Saudi/Gulf home-caregiving context. Green cells with white icon/text stay
+# constantly legible; the cell's own background behind them brightens
+# toward a lighter green as dwell progress builds, giving a clear fill
+# indicator without ever touching the icon/text themselves.
+CELL_BG = "#2e7d32"
+CELL_BORDER = "#ffffff"
+TEXT_FG = "#ffffff"
+TEXT_FG_RGB = (0xFF, 0xFF, 0xFF, 255)
+PROGRESS_HIGHLIGHT = (0x8B, 0xE0, 0x8F)  # brighter green, dwell progress fills toward this
+
 
 class GridUI:
     """Tkinter grid of selectable cells with Arabic labels. Call
@@ -56,7 +67,7 @@ class GridUI:
         self._text_photos = {}
         self.root = tk.Tk()
         self.root.title("نظرة — Nazrah")
-        self.root.configure(bg="black")
+        self.root.configure(bg=CELL_BG)
         # Fullscreen so the grid actually spans the whole screen — the
         # calibration in main.py maps gaze to full-screen coordinates
         # (winfo_screenwidth/height), so the grid has to occupy that same
@@ -84,7 +95,7 @@ class GridUI:
         self._active_id = None
         self._text_photos = {}
 
-        frame = tk.Frame(self.root, bg="black")
+        frame = tk.Frame(self.root, bg=CELL_BG)
         frame.pack(expand=True, fill="both")
         self._frame = frame
 
@@ -96,15 +107,21 @@ class GridUI:
 
         for index, item in enumerate(items):
             row, col = divmod(index, columns)
-            cell = tk.Frame(frame, bg="#1e1e1e", relief="ridge", borderwidth=2)
+            cell = tk.Frame(
+                frame,
+                bg=CELL_BG,
+                highlightthickness=3,
+                highlightbackground=CELL_BORDER,
+                highlightcolor=CELL_BORDER,
+            )
             cell.grid(row=row, column=col, padx=4, pady=4, sticky="nsew")
 
             icon_label = tk.Label(
                 cell,
                 text=item.icon,
                 font=(self._font_family, ICON_FONT_SIZE),
-                bg="#1e1e1e",
-                fg="white",
+                bg=CELL_BG,
+                fg=TEXT_FG,
             )
             icon_label.pack(expand=True)
 
@@ -142,45 +159,50 @@ class GridUI:
                 (4 - x0, 4 - y0),
                 item.text,
                 font=font,
-                fill=(255, 255, 255, 255),
+                fill=TEXT_FG_RGB,
                 direction="rtl",
             )
             photo = ImageTk.PhotoImage(img)
             self._text_photos[item.id] = photo  # keep alive — Tk drops GC'd images
-            return tk.Label(parent, image=photo, bg="#1e1e1e")
+            return tk.Label(parent, image=photo, bg=CELL_BG)
 
         return tk.Label(
             parent,
             text=item.text,
             font=(self._font_family, TEXT_FONT_SIZE),
-            bg="#1e1e1e",
-            fg="white",
+            bg=CELL_BG,
+            fg=TEXT_FG,
         )
 
     def _set_cell_bg(self, cell_id, color):
-        cell = self._cells[cell_id]
-        cell.configure(bg=color)
-        for child in cell.winfo_children():
-            child.configure(bg=color)
+        # Deliberately only the outer cell Frame, not its icon/text
+        # children — those stay a constant white with dark green text so
+        # they're always legible, while the frame's own background (visible
+        # as a wash around them) is what shows dwell progress filling in.
+        self._cells[cell_id].configure(bg=color)
 
     def set_active_cell(self, cell_id, progress=0.0):
         if cell_id != self._active_id and self._active_id is not None:
-            self._set_cell_bg(self._active_id, "#1e1e1e")
+            self._set_cell_bg(self._active_id, CELL_BG)
         self._active_id = cell_id
         if cell_id is not None:
             self._set_cell_bg(cell_id, self._progress_color(progress))
 
     @staticmethod
     def _progress_color(progress):
-        green = int(30 + progress * 150)
-        return f"#1e{green:02x}3c"
+        r0, g0, b0 = 0x2E, 0x7D, 0x32  # CELL_BG
+        r1, g1, b1 = PROGRESS_HIGHLIGHT
+        r = round(r0 + (r1 - r0) * progress)
+        g = round(g0 + (g1 - g0) * progress)
+        b = round(b0 + (b1 - b0) * progress)
+        return f"#{r:02x}{g:02x}{b:02x}"
 
     def flash_selection(self, cell_id):
-        self._set_cell_bg(cell_id, "#2e7d32")
+        self._set_cell_bg(cell_id, CELL_BORDER)
 
         def revert():
             try:
-                self._set_cell_bg(cell_id, "#1e1e1e")
+                self._set_cell_bg(cell_id, CELL_BG)
             except tk.TclError:
                 # The cell's widget may have been destroyed by a show()
                 # (screen switch) or window close in the 400ms since this
