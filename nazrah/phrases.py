@@ -23,10 +23,10 @@ class Phrase:
 
 PHRASES = [
     # الاحتياجات الأساسية — Main needs
-    Phrase("water", "basic_needs", "ماء", "maa'", "\U0001F4A7"),
+    Phrase("water", "basic_needs", "مويه", "moyah", "\U0001F4A7"),
     Phrase("hungry", "basic_needs", "جوعان", "jaw'an", "\U0001F37D"),
     Phrase("bathroom", "basic_needs", "حمام", "hammam", "\U0001F6BB"),
-    Phrase("pain", "basic_needs", "ألم", "alam", "⚠", urgent=True),
+    Phrase("pain", "basic_needs", "وجع", "waja'", "⚠", urgent=True),
 
     # الصلاة والعبادة — Prayer & worship
     Phrase("prayer", "prayer", "الصلاة", "as-salah", "\U0001F54C"),
@@ -37,10 +37,10 @@ PHRASES = [
     Phrase("father", "family", "يبى", "yaba", "\U0001F468"),
 
     # طلبات ومشاعر — Requests & feelings
-    Phrase("yes", "responses", "نعم", "na'am", "✅"),
+    Phrase("yes", "responses", "إي", "ee", "✅"),
     Phrase("no", "responses", "لا", "la", "❌"),
-    Phrase("help", "responses", "ساعدني", "sa'idni", "\U0001F198", urgent=True),
-    Phrase("sleep", "responses", "أريد أن أنام", "ureedu an anam", "\U0001F6CC"),
+    Phrase("help", "responses", "لحقوني", "la7gooni", "\U0001F198", urgent=True),
+    Phrase("sleep", "responses", "ودّي أنام", "widdi anam", "\U0001F6CC"),
 ]
 
 CATEGORIES = ["basic_needs", "prayer", "family", "responses"]
