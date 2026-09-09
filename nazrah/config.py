@@ -52,6 +52,16 @@ FORCE_RECALIBRATE = os.environ.get("NAZRAH_RECALIBRATE") == "1"
 # and main.py falls back to NoOpLightController automatically.
 LIGHT_GPIO_PIN = 21
 
+# Folder of pre-recorded phrase audio (see tts.py) — checked before falling
+# back to system TTS. A real Saudi speaker's recording sounds far more
+# natural than any TTS voice for dialect-specific phrases like these, and
+# sidesteps needing an Arabic voice installed at all (Windows ships none
+# by default, and even the Pi's espeak-ng voice is a robotic approximation
+# at best). Each file must be named "<phrase.id>.wav" — see audio/README.md.
+# Falls back gracefully to TTS for any phrase whose file isn't there yet,
+# so this doesn't need to be all-or-nothing.
+AUDIO_BANK_DIR = os.environ.get("NAZRAH_AUDIO_BANK_DIR", "audio")
+
 # Font family for the grid labels (see ui.py). Tk has no font-fallback
 # chain — an unavailable family silently substitutes some default, which
 # on Windows still renders Arabic fine (the OS does its own glyph

@@ -7,6 +7,7 @@ from . import phrases as phrase_data
 from .calibration import Calibrator, load_calibration, median_point, save_calibration
 from .camera import WebcamSource
 from .config import (
+    AUDIO_BANK_DIR,
     CALIBRATION_FILE,
     CALIBRATION_POINTS_RATIO,
     CAMERA_INDEX,
@@ -88,7 +89,7 @@ def main():
     camera = WebcamSource(index=CAMERA_INDEX)
     tracker = GazeTracker()
     logger = UsageLogger()
-    tts = TTSEngine()
+    tts = TTSEngine(audio_bank_dir=AUDIO_BANK_DIR)
     dwell = DwellSelector(dwell_seconds=DWELL_SECONDS)
     smoother = TargetSmoother(confirm_frames=TARGET_CONFIRM_FRAMES)
 
