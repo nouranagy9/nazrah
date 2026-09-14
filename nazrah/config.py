@@ -24,6 +24,18 @@ NTFY_TOPIC = os.environ.get("NAZRAH_NTFY_TOPIC")
 # be large to filter noise.
 TARGET_CONFIRM_FRAMES = 2
 
+# How many of the closest calibration points blend together for each live
+# gaze reading (see calibration.Calibrator.nearest_target) — inverse-
+# distance-weighted, so the single closest one still dominates. 1 would be
+# plain nearest-neighbor (exact calibration targets only, but jittery right
+# at the boundary between two targets' "territory"); higher smooths that
+# out at the cost of blurring together points that are close together
+# relative to the overall calibration spread. 3 was a reasonable middle
+# ground for the 4-column grid this was tuned against — each point mostly
+# blends with its immediate horizontal/vertical neighbors, not the whole
+# grid.
+TARGET_K_NEIGHBORS = 3
+
 # Which /dev/videoN (or Windows camera index) WebcamSource opens. A device
 # with multiple cameras attached — e.g. CrowPi's built-in low-res camera
 # plus a separate external USB webcam — won't necessarily put the one you

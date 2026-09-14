@@ -19,6 +19,7 @@ from .config import (
     GRID_FONT_FILE,
     NTFY_TOPIC,
     TARGET_CONFIRM_FRAMES,
+    TARGET_K_NEIGHBORS,
 )
 from .dwell import DwellSelector
 from .gaze_tracker import GazeTracker
@@ -183,7 +184,7 @@ def main():
             raw_target_id = None
             screen_x = screen_y = None
             if eye_pos is not None and calibrator.num_samples > 0:
-                screen_x, screen_y = calibrator.nearest_target(eye_pos)
+                screen_x, screen_y = calibrator.nearest_target(eye_pos, k=TARGET_K_NEIGHBORS)
                 raw_target_id = ui.hit_test(screen_x, screen_y)
 
             # Smooth before feeding into dwell: a single frame misclassified

@@ -24,19 +24,31 @@ def median_point(points):
 
 class Calibrator:
     """Maps a normalized eye position (as returned by GazeTracker) to a
-    screen target, using nearest-neighbor classification over the
-    (eye_pos, screen_pos) samples collected during calibration.
+    screen position, using inverse-distance-weighted k-nearest-neighbors
+    over the (eye_pos, screen_pos) samples collected during calibration.
 
     This started out as least-squares regression to a continuous screen
     coordinate, which is the "textbook" approach — but a plain webcam's
     gaze signal turned out to be weak and noisy relative to the screen
     range it's mapped to, so a small amount of live drift from the
     calibration pose got amplified into wildly out-of-bounds predictions.
-    Nearest-neighbor classification can't extrapolate — it only ever
-    returns one of the known calibration targets — trading continuous
-    positioning for robustness. In practice this means the number of
-    reliably distinguishable targets is bounded by how many calibration
-    points were collected (see CALIBRATION_POINTS_RATIO in config.py).
+    Plain (k=1) nearest-neighbor classification fixed that — it can't
+    extrapolate, since it only ever returns one of the known calibration
+    targets exactly — but trades away smoothness for it: gaze readings
+    that land right at the boundary between two calibration points'
+    "territory" can flip the result between them on essentially no
+    change in input, which reads as jittery/inaccurate selection.
+
+    Weighted k-NN (this version) blends the K closest calibration
+    samples' screen positions by inverse squared distance instead of
+    picking only the single closest one — still bounded to the convex
+    hull of the actual calibration points (so it still can't extrapolate
+    into wild out-of-bounds territory the way regression did), but the
+    output moves continuously as gaze drifts near a boundary instead of
+    snapping discretely between two fixed points. An eye_pos that
+    exactly matches a calibration sample still returns that sample's
+    screen_pos exactly (no blending needed, and avoids dividing by a
+    zero distance). See config.TARGET_K_NEIGHBORS.
     """
 
     def __init__(self):
@@ -56,17 +68,40 @@ class Calibrator:
         """List of (eye_pos, screen_pos) pairs collected so far."""
         return list(zip(self._eye_points, self._screen_points))
 
-    def nearest_target(self, eye_pos):
-        """Returns the screen_pos of whichever calibration sample's eye_pos
-        is closest (Euclidean distance) to the given eye_pos."""
+    def nearest_target(self, eye_pos, k=3):
+        """Returns a screen position blending the k calibration samples
+        whose eye_pos is closest (Euclidean distance) to the given
+        eye_pos, weighted by inverse squared distance — closer samples
+        pull the result more. Falls back to fewer than k if there aren't
+        that many samples yet."""
         if not self._eye_points:
             raise RuntimeError("No calibration samples added yet")
-        best_index = min(
+
+        k = min(k, len(self._eye_points))
+        by_distance = sorted(
             range(len(self._eye_points)),
             key=lambda i: (self._eye_points[i][0] - eye_pos[0]) ** 2
             + (self._eye_points[i][1] - eye_pos[1]) ** 2,
-        )
-        return self._screen_points[best_index]
+        )[:k]
+
+        nearest_index = by_distance[0]
+        nearest_dist_sq = (self._eye_points[nearest_index][0] - eye_pos[0]) ** 2 + (
+            self._eye_points[nearest_index][1] - eye_pos[1]
+        ) ** 2
+        if nearest_dist_sq == 0:
+            return self._screen_points[nearest_index]
+
+        weights = []
+        for i in by_distance:
+            dist_sq = (self._eye_points[i][0] - eye_pos[0]) ** 2 + (
+                self._eye_points[i][1] - eye_pos[1]
+            ) ** 2
+            weights.append(1.0 / dist_sq)
+
+        total_weight = sum(weights)
+        x = sum(w * self._screen_points[i][0] for w, i in zip(weights, by_distance)) / total_weight
+        y = sum(w * self._screen_points[i][1] for w, i in zip(weights, by_distance)) / total_weight
+        return (x, y)
 
 
 def save_calibration(calibrator, path, screen_w, screen_h):

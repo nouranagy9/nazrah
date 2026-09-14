@@ -48,15 +48,19 @@ cultural claim to hold up in front of judges.
 2. **Calibration** — [`nazrah/calibration.py`](nazrah/calibration.py) walks
    through a grid of points sized to exactly match the phrase grid's own
    columns x rows (see `config.CALIBRATION_POINTS_RATIO`, derived from
-   `phrases.PHRASES` and `GRID_COLUMNS`) and, for live tracking, classifies
-   the current eye position as whichever calibration point it's closest to
-   (nearest-neighbor), rather than fitting a continuous regression. A
-   plain webcam's gaze signal is too weak/noisy relative to full-screen
-   pixel coordinates for a continuous fit to extrapolate reliably — see the
-   docstring in `calibration.py` for what was tried first and why it
-   didn't hold up. Practically, this means the number of reliably
-   distinguishable targets is bounded by how many points you calibrate;
-   `nazrah/ui.py`'s `hit_test` maps each calibration point to whichever
+   `phrases.PHRASES` and `GRID_COLUMNS`) and, for live tracking, blends the
+   `config.TARGET_K_NEIGHBORS` closest calibration points' screen positions,
+   weighted by inverse distance (closer points pull harder), rather than
+   fitting a continuous regression. A plain webcam's gaze signal is too
+   weak/noisy relative to full-screen pixel coordinates for a continuous
+   fit to extrapolate reliably — see the docstring in `calibration.py` for
+   what was tried first and why it didn't hold up, and for why weighted
+   k-NN doesn't reintroduce that problem (it still can't extrapolate past
+   the known calibration points, just blends between the nearest few
+   instead of snapping discretely to one). Practically, this means the
+   number of reliably distinguishable targets is bounded by how many
+   points you calibrate; `nazrah/ui.py`'s `hit_test` maps each blended
+   screen position to whichever
    phrase cell's center is nearest it. Pushing the grid size higher has a
    ceiling — see the note in `config.py`. A successful calibration is
    saved to `calibration_data.json` (`config.CALIBRATION_FILE`) and

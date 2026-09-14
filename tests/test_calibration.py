@@ -9,26 +9,43 @@ def test_nearest_target_before_any_samples_raises():
         calibrator.nearest_target((0.5, 0.5))
 
 
-def test_nearest_target_picks_closest_sample():
+def test_nearest_target_exact_match_returns_that_target_exactly():
+    # An eye_pos exactly matching a calibration sample shouldn't get
+    # blended with its neighbors — the zero-distance shortcut in
+    # nearest_target returns it untouched.
     calibrator = Calibrator()
-    calibrator.add_sample((0.1, 0.1), "top-left")
-    calibrator.add_sample((0.9, 0.1), "top-right")
-    calibrator.add_sample((0.5, 0.9), "bottom-center")
+    calibrator.add_sample((0.1, 0.1), (10, 10))
+    calibrator.add_sample((0.9, 0.1), (90, 10))
+    calibrator.add_sample((0.5, 0.9), (50, 90))
 
-    assert calibrator.nearest_target((0.12, 0.08)) == "top-left"
-    assert calibrator.nearest_target((0.85, 0.15)) == "top-right"
-    assert calibrator.nearest_target((0.5, 1.0)) == "bottom-center"
+    assert calibrator.nearest_target((0.1, 0.1)) == (10, 10)
+    assert calibrator.nearest_target((0.9, 0.1)) == (90, 10)
 
 
-def test_nearest_target_never_extrapolates_beyond_known_targets():
+def test_nearest_target_weights_toward_the_closer_sample():
+    # Not an exact match to either sample, but much closer to the first —
+    # weighted k-NN should pull the blended result well past the halfway
+    # point between them, toward the closer one.
+    calibrator = Calibrator()
+    calibrator.add_sample((0.0, 0.0), (0, 0))
+    calibrator.add_sample((1.0, 0.0), (100, 0))
+
+    x, y = calibrator.nearest_target((0.1, 0.0), k=2)
+    assert x < 50  # pulled toward (0, 0), not sitting at the midpoint (50, 0)
+
+
+def test_nearest_target_stays_within_bounds_of_known_targets():
     calibrator = Calibrator()
     calibrator.add_sample((0.4, 0.4), (100, 100))
     calibrator.add_sample((0.6, 0.4), (200, 100))
 
-    # A wild, noisy eye position still resolves to one of the two known
-    # targets rather than some out-of-range extrapolated point.
-    result = calibrator.nearest_target((5.0, -3.0))
-    assert result in ((100, 100), (200, 100))
+    # A wild, noisy eye position still resolves within the range of the
+    # known targets rather than some wildly out-of-range extrapolation —
+    # the failure mode that sank the least-squares-regression approach
+    # this replaced (see the Calibrator docstring).
+    x, y = calibrator.nearest_target((5.0, -3.0))
+    assert 100 <= x <= 200
+    assert y == pytest.approx(100)
 
 
 def test_num_samples_tracks_added_samples():
