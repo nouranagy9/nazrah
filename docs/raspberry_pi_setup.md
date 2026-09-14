@@ -1,7 +1,7 @@
-# Deploying to Raspberry Pi 5 + CrowPi + USB camera
+# Deploying to Raspberry Pi 4 + CrowPi + USB camera
 
 This covers getting this repo running on the actual device: a Raspberry Pi
-5 in a CrowPi case, with a USB camera (not the CSI ribbon camera). Because
+4 in a CrowPi case, with a USB camera (not the CSI ribbon camera). Because
 [`nazrah/camera.py`](../nazrah/camera.py)'s `WebcamSource` uses OpenCV's
 `VideoCapture`, which talks to any USB UVC webcam on Linux the same way it
 talks to a laptop webcam on Windows — **no code changes are needed** to
@@ -14,7 +14,7 @@ USB one.
 Use [Raspberry Pi Imager](https://www.raspberrypi.com/software/) on your
 Windows machine:
 
-1. Choose **Raspberry Pi 5** as the device.
+1. Choose **Raspberry Pi 4** as the device.
 2. Choose **Raspberry Pi OS (64-bit)** — the full **Desktop** version, not
    Lite. Tkinter needs a GUI/display server to draw the phrase grid, so
    Lite won't work here.
@@ -27,9 +27,15 @@ Windows machine:
 ## 2. Physical setup
 
 - Assemble the CrowPi per its manual (screen + speaker connections into
-  the Pi 5's ports).
-- Plug the **USB camera** into any USB port on the Pi 5.
-- Power the Pi via USB-C.
+  the Pi 4's ports).
+- Plug the **USB camera** into any USB port on the Pi 4.
+- Power the Pi via USB-C with a plain **5V/3A** supply (ideally the
+  official Raspberry Pi USB-C Power Supply) — not just any USB-C charger.
+  Pi 4 doesn't do full USB-C Power Delivery negotiation the way newer Pi
+  models do, so a phone fast-charger negotiating up to 9V/12V via PD is a
+  well-known real compatibility problem here, and was a live suspect (not
+  fully ruled out) behind intermittent USB camera image corruption seen
+  during testing on this exact board.
 
 ## 3. Get the code onto the Pi
 
@@ -98,7 +104,7 @@ must have a Tk build with real TrueType/Xft support for these fonts to
 even be reachable at all — see the note in `nazrah/ui.py`'s `GridUI`
 docstring if you're on a non-default Python (e.g. installed via `uv` to
 work around a mediapipe/CPU compatibility issue, as this project's own
-Pi 5 needed — that interpreter's bundled Tk has *no* TrueType support
+Pi 4 needed — that interpreter's bundled Tk has *no* TrueType support
 whatsoever, Arabic font and emoji font installed or not, which is why
 `config.py`'s `GRID_FONT_FILE`/`GRID_EMOJI_FONT_FILE` exist as a Pillow-
 based fallback path that bypasses Tk's font engine entirely).
@@ -206,6 +212,26 @@ Calibration runs once at startup, then lands directly on the phrase grid
 — see "How it works" in the main [README](../README.md) for the full
 session flow.
 
+## 11. Set up a double-click launcher (no keyboard/SSH needed)
+
+For actually using or presenting the device, launching via SSH every time
+isn't practical. `run_nazrah.sh` (repo root) wraps the run command above
+with this device's settings baked in — edit it once (camera index,
+caregiver alert topic) and it's a single double-click after that:
+
+```bash
+chmod +x run_nazrah.sh
+mkdir -p ~/Desktop
+cp Nazrah.desktop ~/Desktop/
+chmod +x ~/Desktop/Nazrah.desktop
+```
+
+The first time, right-click the new desktop icon and choose "Allow
+Launching" (or similar — wording depends on the desktop environment)
+before double-clicking will work; this is a one-time trust step most
+Linux desktops require for a `.desktop` file that wasn't installed via a
+package manager.
+
 ## Troubleshooting
 
 - **`mediapipe` won't install** — check piwheels for a matching wheel (see
@@ -215,9 +241,11 @@ session flow.
   lower the requested resolution in `WebcamSource.__init__` (some USB
   webcams don't support 640x480 in every mode).
 - **Everything works but feels laggy** — MediaPipe's face detection is the
-  expensive step per frame; on a Pi 5 it should still run at an
-  interactive frame rate, but if it doesn't, that's worth measuring and
-  writing up for Criterion D (evaluation) rather than just tolerating it.
+  expensive step per frame, and this project's own Pi 4 (weaker than a Pi
+  5, which earlier notes here mistakenly assumed this board was) runs it
+  at roughly 5-10fps in practice, not a snappier interactive rate — that's
+  a real hardware ceiling, not a bug, and worth measuring/writing up for
+  Criterion D (evaluation) rather than chasing further.
 - **TTS sounds bad / not real Arabic** — expected with `espeak`. Record
   real audio clips for each phrase (a family member reading them aloud is
   more authentic anyway) and drop them into the `audio/` bank directory

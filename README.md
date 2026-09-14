@@ -136,6 +136,12 @@ highlighted point and hold still — press Escape anytime to exit
 fullscreen), then lands directly on the phrase grid — all 12 phrases at
 once, no menu in front of it.
 
+On the deployed device, `run_nazrah.sh` wraps this with the right
+environment variables (`DISPLAY`, camera index, caregiver alert topic) so
+it doesn't need a terminal — see [`docs/raspberry_pi_setup.md`](docs/raspberry_pi_setup.md)'s
+last step for wiring it up as a double-click desktop icon, for when
+there's no keyboard/SSH access to hand (e.g. presenting the project).
+
 Calibration only happens once — later launches reuse the saved
 calibration and skip straight to the phrase grid (see `NAZRAH_RECALIBRATE`
 above if you need to force a fresh one).
@@ -166,7 +172,7 @@ to deployment with a USB camera. `PiCameraSource` in
 [`nazrah/camera.py`](nazrah/camera.py) is only needed if you switch to the
 Pi's CSI ribbon camera instead (requires `picamera2`, which only installs
 on Pi OS). See [`docs/raspberry_pi_setup.md`](docs/raspberry_pi_setup.md)
-for the full Raspberry Pi 5 + CrowPi deployment walkthrough.
+for the full Raspberry Pi 4 + CrowPi deployment walkthrough.
 
 ## Testing
 

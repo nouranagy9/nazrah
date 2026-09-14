@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Name=Nazrah
+Comment=Launch the Nazrah eye-gaze communication board
+Exec=/home/madac/nazrah/run_nazrah.sh
+Icon=utilities-terminal
+Terminal=false
+Categories=Utility;
