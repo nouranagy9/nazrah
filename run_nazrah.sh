@@ -14,8 +14,11 @@ export DISPLAY=:0
 # if the app can't open the camera, and update the line below.
 export NAZRAH_CAMERA_INDEX=0
 
-# Uncomment and set this to enable caregiver push alerts for urgent
-# phrases (see README.md's "Caregiver alerts" section):
-# export NAZRAH_NTFY_TOPIC="your-caregiver-alert-topic-here"
+# Enables caregiver push alerts for urgent phrases (see README.md's
+# "Caregiver alerts" section). This is a smoke-test topic used during
+# development -- swap it for a real, private, long-random topic name
+# before actually relying on this for a real caregiver (the topic name
+# IS the access control, so a guessable one isn't private).
+export NAZRAH_NTFY_TOPIC="nazrah-smoketest-8f3k2x9p7q"
 
 python3 -m nazrah.main
