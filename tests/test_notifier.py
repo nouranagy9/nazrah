@@ -15,7 +15,7 @@ def test_notify_posts_to_topic_url():
     assert len(calls) == 1
     url, message, headers = calls[0]
     assert url == "https://ntfy.sh/test-topic"
-    assert "ألم" in message
+    assert "وجع" in message
     assert headers["Priority"] == "urgent"
 
 

@@ -25,7 +25,7 @@ def test_by_category_filters_correctly():
 
 
 def test_by_id_returns_matching_phrase():
-    assert by_id("water").text_ar == "ماء"
+    assert by_id("water").text_ar == "مويه"
 
 
 def test_by_id_raises_for_unknown_id():

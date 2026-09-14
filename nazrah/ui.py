@@ -86,8 +86,11 @@ class GridUI:
         self.show(items, columns)
 
     def show(self, items, columns):
-        """Replaces the currently displayed cells with a new set — how
-        screens are switched (see main.py's SCREEN_HOME/SCREEN_NEEDS)."""
+        """Replaces the currently displayed cells with a new set. main.py
+        currently only ever calls this once, at startup, with the full
+        phrase grid — kept general rather than folded into __init__ since
+        an earlier version did switch between multiple screens this way,
+        and a future one reasonably might again."""
         if self._frame is not None:
             self._frame.destroy()
 

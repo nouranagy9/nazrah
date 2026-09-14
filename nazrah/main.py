@@ -16,35 +16,24 @@ from .config import (
     GRID_COLUMNS,
     GRID_FONT_FAMILY,
     GRID_FONT_FILE,
-    LIGHT_GPIO_PIN,
     NTFY_TOPIC,
     TARGET_CONFIRM_FRAMES,
 )
 from .dwell import DwellSelector
 from .gaze_tracker import GazeTracker
-from .light import GpioLightController, NoOpLightController
 from .logger import UsageLogger
 from .notifier import CaregiverNotifier
 from .smoothing import TargetSmoother
 from .tts import TTSEngine
 from .ui import GridItem, GridUI
 
-SCREEN_HOME = "home"
-SCREEN_NEEDS = "needs"
-
-HOME_ITEMS = [
-    GridItem("light_off", "\U0001F4A1", "إطفاء الضوء"),
-    GridItem("needs", "\U0001F4AC", "الاحتياجات"),
-]
-
-# The needs screen drops "wudu" and adds a way back to the home screen —
-# prayer already covers that moment, and without a way back the light
-# button would be unreachable for the rest of the session. Keeping this a
-# clean 12 cells (matching len(phrases.PHRASES)) preserves the calibration
-# grid's tuning; see the note in config.py about why that count matters.
-NEEDS_ITEMS = [
-    GridItem(p.id, p.icon, p.text_ar) for p in phrase_data.PHRASES if p.id != "wudu"
-] + [GridItem("home", "\U0001F3E0", "الرئيسية")]
+# A single screen showing every phrase — no more home screen/light toggle
+# in front of it (dropped per live testing feedback: the extra screen was
+# in the way of getting straight to the phrases that matter). All 12
+# phrases now show directly, matching len(phrases.PHRASES) and so the
+# calibration grid's tuning (see config.py) without needing to reserve a
+# cell for a way back to a home screen that no longer exists.
+GRID_ITEMS = [GridItem(p.id, p.icon, p.text_ar) for p in phrase_data.PHRASES]
 
 
 def run_calibration(ui, tracker, camera, screen_w, screen_h):
@@ -52,9 +41,8 @@ def run_calibration(ui, tracker, camera, screen_w, screen_h):
     at each highlighted point in turn and hold still while samples are
     collected. Naturally turning your head toward each point (not just
     moving your eyes) is expected and fine — see the note in
-    gaze_tracker.GazeTracker. Only depends on screen dimensions, not on
-    which screen (home/needs) is currently shown, so it only needs to run
-    once per session even though the UI switches screens afterward."""
+    gaze_tracker.GazeTracker. Only depends on screen dimensions, so it only
+    needs to run once per session."""
     calibrator = Calibrator()
 
     for rx, ry in CALIBRATION_POINTS_RATIO:
@@ -93,11 +81,6 @@ def main():
     dwell = DwellSelector(dwell_seconds=DWELL_SECONDS)
     smoother = TargetSmoother(confirm_frames=TARGET_CONFIRM_FRAMES)
 
-    try:
-        light = GpioLightController(LIGHT_GPIO_PIN)
-    except RuntimeError:
-        light = NoOpLightController()
-
     notifier = CaregiverNotifier(NTFY_TOPIC) if NTFY_TOPIC else None
     if notifier is None:
         print(
@@ -105,8 +88,6 @@ def main():
             "a remote caregiver alert, only the local speaker.",
             flush=True,
         )
-
-    screen = SCREEN_HOME
 
     # A single persistent worker, not one thread per phrase: pyttsx3 can be
     # slow (or hang outright, as observed on this Windows setup), and
@@ -135,37 +116,13 @@ def main():
             threading.Thread(target=notifier.notify, args=(phrase,), daemon=True).start()
 
     def on_select(cell_id):
-        nonlocal screen
-
-        # Cells that switch screens skip the flash: the frame that flash
-        # would revert gets destroyed by show() well before its 400ms
-        # timer runs out, and the screen change itself is enough visual
-        # feedback that the selection registered.
-        if screen == SCREEN_HOME:
-            if cell_id == "needs":
-                screen = SCREEN_NEEDS
-                ui.show(NEEDS_ITEMS, columns=GRID_COLUMNS)
-                # The smoother's memory of "what was being looked at" can
-                # otherwise keep returning a home-screen id (e.g. "needs")
-                # that no longer exists among the new screen's cells,
-                # crashing set_active_cell on the very next frame.
-                smoother.reset()
-            elif cell_id == "light_off":
-                ui.flash_selection(cell_id)
-                light.turn_off()
-        elif screen == SCREEN_NEEDS:
-            if cell_id == "home":
-                screen = SCREEN_HOME
-                ui.show(HOME_ITEMS, columns=2)
-                smoother.reset()
-            else:
-                ui.flash_selection(cell_id)
-                speak_phrase(cell_id)
+        ui.flash_selection(cell_id)
+        speak_phrase(cell_id)
 
     ui = GridUI(
         on_select=on_select,
-        items=HOME_ITEMS,
-        columns=2,
+        items=GRID_ITEMS,
+        columns=GRID_COLUMNS,
         font_family=GRID_FONT_FAMILY,
         font_file=GRID_FONT_FILE,
     )

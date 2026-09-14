@@ -71,9 +71,11 @@ version, check
 for which versions are available and pin to one of those in
 `requirements.txt`.
 
-If you're wiring up the home screen's light/relay control (see step 7a),
-also install gpiozero — deliberately not in `requirements.txt` since it's
-Pi-only and would be dead weight on a dev machine:
+If you're wiring up the light/relay control (see step 7 — currently not
+called from `main.py`'s single-screen UI, but the module and GPIO wiring
+still work standalone), also install gpiozero — deliberately not in
+`requirements.txt` since it's Pi-only and would be dead weight on a dev
+machine:
 
 ```bash
 pip install gpiozero
@@ -99,13 +101,16 @@ Should print `True`. If you get a permissions error, add your user to the
 sudo usermod -aG video $USER
 ```
 
-## 7. Wire up the light (optional)
+## 7. Wire up the light (optional, currently unused by the app)
 
-The home screen's "turn off light" button drives a relay via
-[`nazrah/light.py`](../nazrah/light.py) — GPIO pin 21 by default
-(`config.LIGHT_GPIO_PIN`), matching CrowPi's built-in relay module (pin
-40 / GPIO21 per Elecrow's CrowPi manual). If you're wiring up a different
-relay on a different pin, update `LIGHT_GPIO_PIN` to match.
+[`nazrah/light.py`](../nazrah/light.py) drives a relay to turn off a
+light — GPIO pin 21 by default (`config.LIGHT_GPIO_PIN`), matching
+CrowPi's built-in relay module (pin 40 / GPIO21 per Elecrow's CrowPi
+manual). `main.py` doesn't call into this anymore (dropped in favor of a
+single always-shown phrase grid instead of a separate home screen with a
+light toggle) — this is only useful if wiring it back in yourself. If
+you do, and are wiring up a different relay on a different pin, update
+`LIGHT_GPIO_PIN` to match.
 
 **Safety note straight from Elecrow's manual**: this relay is rated for
 low-voltage breadboard use only — it must never be wired to a
@@ -169,9 +174,9 @@ python3 -m nazrah.main
 
 First run downloads the face landmark model (~4MB) — needs internet once,
 then it's cached in `nazrah/models/` and works offline after that.
-Calibration runs once at startup, then lands on the home screen (light
-off / needs) — see "How it works" in the main [README](../README.md) for
-the full session flow.
+Calibration runs once at startup, then lands directly on the phrase grid
+— see "How it works" in the main [README](../README.md) for the full
+session flow.
 
 ## Troubleshooting
 
@@ -187,16 +192,10 @@ the full session flow.
   writing up for Criterion D (evaluation) rather than just tolerating it.
 - **TTS sounds bad / not real Arabic** — expected with `espeak`. Record
   real audio clips for each phrase (a family member reading them aloud is
-  more authentic anyway) and drop them into an audio bank directory, then
-  pass `audio_bank_dir=` to `TTSEngine` in `nazrah/main.py` — see
-  "Adding phrases" in the main [README](../README.md).
-- **"إطفاء الضوء" doesn't actually turn anything off** — check the console
-  output right after startup for `[Light] (no hardware configured)...`,
-  which means `GpioLightController` failed to initialize (gpiozero not
-  installed, or `OutputDevice(21, ...)` couldn't claim the pin) and it
-  silently fell back to the no-op controller. Re-run the check command
-  from step 7 directly to isolate whether it's a wiring issue or a
-  software one.
+  more authentic anyway) and drop them into the `audio/` bank directory
+  (see [`audio/README.md`](../audio/README.md)) — `TTSEngine` uses a
+  recording automatically whenever one exists for a phrase, falling back
+  to `espeak` only for phrases that don't have one yet.
 
 ## Optional: launch on boot
 
