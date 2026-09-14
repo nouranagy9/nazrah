@@ -12,13 +12,15 @@ GridItem = namedtuple("GridItem", ["id", "icon", "text"])
 # large cells — legibility matters far more here than fitting more on
 # screen. Bumped up from an initial pass that looked fine on a dev monitor
 # but was reported too small once actually seen on the deployed screen.
-ICON_FONT_SIZE = 100
+ICON_FONT_SIZE = 180
 TEXT_FONT_SIZE = 40
 
-# Noto Color Emoji only has this one bitmap strike baked in — see
-# GridUI._make_icon_label for why this matters. Keep ICON_FONT_SIZE at or
-# below this: it's a raster font, so anything past its native size
-# upscales the bitmap and looks blurry instead of getting sharper.
+# Noto Color Emoji only has this one bitmap strike baked in (109px) — see
+# GridUI._make_icon_label. ICON_FONT_SIZE above is intentionally larger
+# than that: past 109 the rendered bitmap gets upscaled and loses some
+# sharpness, but on real hardware a clearly bigger, slightly softer icon
+# read as more usable than a small crisp one — visibility mattered more
+# here than pixel-perfect edges.
 _EMOJI_STRIKE_SIZE = 109
 
 # Green + white — the Saudi flag's colors, fitting for a device built for a
