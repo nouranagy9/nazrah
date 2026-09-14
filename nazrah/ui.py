@@ -40,7 +40,9 @@ class GridUI:
     dimensions, not on what's currently drawn.
     """
 
-    def __init__(self, on_select, items, columns, font_family, font_file=None):
+    def __init__(
+        self, on_select, items, columns, font_family, font_file=None, emoji_font_file=None
+    ):
         self.on_select = on_select
         self._font_family = font_family
         # Tk's native font engine on the deployed Pi turned out to only see
@@ -64,6 +66,14 @@ class GridUI:
         # correctly via the OS's own font substitution.
         self._font_file = font_file
         self._pil_font = None  # lazily loaded once, not per cell — see show()
+        # Same story, same fix, for the grid's emoji icons: Tk's font
+        # engine has no color-emoji glyphs on the Pi either (found right
+        # after the text fix above — icons were still blank), so these
+        # render through Pillow too when set. Left None on Windows, which
+        # renders emoji fine natively.
+        self._emoji_font_file = emoji_font_file
+        self._pil_emoji_font = None
+        self._icon_photos = {}
         self._text_photos = {}
         self.root = tk.Tk()
         self.root.title("نظرة — Nazrah")
@@ -96,6 +106,7 @@ class GridUI:
 
         self._cells = {}
         self._active_id = None
+        self._icon_photos = {}
         self._text_photos = {}
 
         frame = tk.Frame(self.root, bg=CELL_BG)
@@ -119,19 +130,48 @@ class GridUI:
             )
             cell.grid(row=row, column=col, padx=4, pady=4, sticky="nsew")
 
-            icon_label = tk.Label(
-                cell,
-                text=item.icon,
-                font=(self._font_family, ICON_FONT_SIZE),
-                bg=CELL_BG,
-                fg=TEXT_FG,
-            )
+            icon_label = self._make_icon_label(cell, item)
             icon_label.pack(expand=True)
 
             text_widget = self._make_text_label(cell, item)
             text_widget.pack(expand=True)
 
             self._cells[item.id] = cell
+
+    def _make_icon_label(self, parent, item):
+        """Renders a cell's emoji icon as a plain Tk label, or — when
+        emoji_font_file is set — as a bitmap via Pillow (see __init__)."""
+        if self._emoji_font_file and os.path.isfile(self._emoji_font_file):
+            from PIL import Image, ImageDraw, ImageFont, ImageTk
+
+            if self._pil_emoji_font is None:
+                self._pil_emoji_font = ImageFont.truetype(
+                    self._emoji_font_file, ICON_FONT_SIZE
+                )
+            font = self._pil_emoji_font
+            probe = ImageDraw.Draw(Image.new("RGBA", (1, 1)))
+            # embedded_color=True draws the emoji's own baked-in color
+            # bitmap glyph rather than trying to fill it with `fill=` —
+            # color-emoji fonts like Noto Color Emoji carry the actual
+            # colors in the glyph itself, unlike a regular text font.
+            x0, y0, x1, y1 = probe.textbbox(
+                (0, 0), item.icon, font=font, embedded_color=True
+            )
+            img = Image.new("RGBA", (x1 - x0 + 8, y1 - y0 + 8), (0, 0, 0, 0))
+            ImageDraw.Draw(img).text(
+                (4 - x0, 4 - y0), item.icon, font=font, embedded_color=True
+            )
+            photo = ImageTk.PhotoImage(img)
+            self._icon_photos[item.id] = photo  # keep alive — Tk drops GC'd images
+            return tk.Label(parent, image=photo, bg=CELL_BG)
+
+        return tk.Label(
+            parent,
+            text=item.icon,
+            font=(self._font_family, ICON_FONT_SIZE),
+            bg=CELL_BG,
+            fg=TEXT_FG,
+        )
 
     def _make_text_label(self, parent, item):
         """Renders a cell's phrase text as a plain Tk label, or — when

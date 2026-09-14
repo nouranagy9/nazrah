@@ -71,7 +71,7 @@ version, check
 for which versions are available and pin to one of those in
 `requirements.txt`.
 
-If you're wiring up the light/relay control (see step 7 — currently not
+If you're wiring up the light/relay control (see step 8 — currently not
 called from `main.py`'s single-screen UI, but the module and GPIO wiring
 still work standalone), also install gpiozero — deliberately not in
 `requirements.txt` since it's Pi-only and would be dead weight on a dev
@@ -87,7 +87,35 @@ automatically (logs what it would have done instead of controlling real
 hardware) — so this step is optional if you don't have a relay wired up
 yet.
 
-## 6. Check the camera
+## 6. Install fonts for the grid
+
+A fresh Raspberry Pi OS install has no Arabic-capable font and no
+color-emoji font, so without this the phrase grid renders with blank
+space where the Arabic words should be, and no icons — found the hard
+way via real hardware testing, not something that fails loudly. Also
+needed: whichever Python interpreter actually runs `nazrah.main` here
+must have a Tk build with real TrueType/Xft support for these fonts to
+even be reachable at all — see the note in `nazrah/ui.py`'s `GridUI`
+docstring if you're on a non-default Python (e.g. installed via `uv` to
+work around a mediapipe/CPU compatibility issue, as this project's own
+Pi 5 needed — that interpreter's bundled Tk has *no* TrueType support
+whatsoever, Arabic font and emoji font installed or not, which is why
+`config.py`'s `GRID_FONT_FILE`/`GRID_EMOJI_FONT_FILE` exist as a Pillow-
+based fallback path that bypasses Tk's font engine entirely).
+
+```bash
+sudo apt-get install -y fonts-noto-core
+# fonts-noto-color-emoji isn't always in the default apt index; if
+# `apt-get install` can't find it, download the .deb directly instead:
+sudo apt-get install -y fonts-noto-color-emoji || {
+    cd /tmp
+    curl -sO http://deb.debian.org/debian/pool/main/f/fonts-noto-color-emoji/fonts-noto-color-emoji_2.051-1_all.deb
+    sudo dpkg -i fonts-noto-color-emoji_2.051-1_all.deb
+}
+fc-list | grep -iE 'noto sans arabic|noto color emoji'  # should list both
+```
+
+## 7. Check the camera
 
 ```bash
 ls /dev/video*
@@ -101,7 +129,7 @@ Should print `True`. If you get a permissions error, add your user to the
 sudo usermod -aG video $USER
 ```
 
-## 7. Wire up the light (optional, currently unused by the app)
+## 8. Wire up the light (optional, currently unused by the app)
 
 [`nazrah/light.py`](../nazrah/light.py) drives a relay to turn off a
 light — GPIO pin 21 by default (`config.LIGHT_GPIO_PIN`), matching
@@ -132,7 +160,7 @@ If the wired light/relay turns off, you're set. Skip this step entirely
 if you don't have hardware wired up yet — the app runs fine without it
 (see the gpiozero note in step 5).
 
-## 8. Check audio output
+## 9. Check audio output
 
 CrowPi's speaker routing depends on how it's wired (3.5mm jack, HDMI, or
 USB, depending on your CrowPi version) — set the right output device:
@@ -148,7 +176,7 @@ Test it:
 espeak "hello"
 ```
 
-## 9. Run it
+## 10. Run it
 
 Make sure you're running on the Pi's actual desktop (not a headless SSH
 session with no display attached) — Tkinter needs `$DISPLAY` set to a real

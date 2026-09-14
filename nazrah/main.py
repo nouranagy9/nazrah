@@ -14,6 +14,7 @@ from .config import (
     DWELL_SECONDS,
     FORCE_RECALIBRATE,
     GRID_COLUMNS,
+    GRID_EMOJI_FONT_FILE,
     GRID_FONT_FAMILY,
     GRID_FONT_FILE,
     NTFY_TOPIC,
@@ -125,6 +126,7 @@ def main():
         columns=GRID_COLUMNS,
         font_family=GRID_FONT_FAMILY,
         font_file=GRID_FONT_FILE,
+        emoji_font_file=GRID_EMOJI_FONT_FILE,
     )
     ui.update()
     screen_w = ui.root.winfo_screenwidth()

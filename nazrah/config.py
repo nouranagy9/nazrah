@@ -90,6 +90,18 @@ GRID_FONT_FILE = os.environ.get(
     else "/usr/share/fonts/truetype/noto/NotoSansArabic-Regular.ttf",
 )
 
+# Same problem, same fix, for the grid's emoji icons: Tk's font engine has
+# no color-emoji glyphs either on the Pi (found straight after the phrase
+# text fix above — icons were still invisible), so these render through
+# Pillow too when set, via `fonts-noto-color-emoji` (apt) on the Pi. Left
+# unset on Windows, which renders emoji fine on its own.
+GRID_EMOJI_FONT_FILE = os.environ.get(
+    "NAZRAH_GRID_EMOJI_FONT_FILE",
+    None
+    if platform.system() == "Windows"
+    else "/usr/share/fonts/truetype/noto/NotoColorEmoji.ttf",
+)
+
 # Calibration grid targets as (x_ratio, y_ratio) of the screen, sized to
 # exactly match the phrase grid's own columns x rows — a calibration grid
 # that doesn't line up with the actual grid was a real, hard-to-spot bug
