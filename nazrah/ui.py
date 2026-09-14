@@ -15,6 +15,10 @@ GridItem = namedtuple("GridItem", ["id", "icon", "text"])
 ICON_FONT_SIZE = 64
 TEXT_FONT_SIZE = 40
 
+# Noto Color Emoji only has this one bitmap strike baked in — see
+# GridUI._make_icon_label for why this matters.
+_EMOJI_STRIKE_SIZE = 109
+
 # Green + white — the Saudi flag's colors, fitting for a device built for a
 # Saudi/Gulf home-caregiving context. Green cells with white icon/text stay
 # constantly legible; the cell's own background behind them brightens
@@ -145,8 +149,14 @@ class GridUI:
             from PIL import Image, ImageDraw, ImageFont, ImageTk
 
             if self._pil_emoji_font is None:
+                # Noto Color Emoji is a bitmap-strike font with exactly one
+                # embedded size (109px) — FreeType raises "invalid pixel
+                # size" for any other size requested directly (found on
+                # real hardware: this crashed the app on startup). Load at
+                # its native size and resize the rendered bitmap afterward
+                # instead of asking the font for a size it doesn't have.
                 self._pil_emoji_font = ImageFont.truetype(
-                    self._emoji_font_file, ICON_FONT_SIZE
+                    self._emoji_font_file, _EMOJI_STRIKE_SIZE
                 )
             font = self._pil_emoji_font
             probe = ImageDraw.Draw(Image.new("RGBA", (1, 1)))
@@ -161,6 +171,12 @@ class GridUI:
             ImageDraw.Draw(img).text(
                 (4 - x0, 4 - y0), item.icon, font=font, embedded_color=True
             )
+            if img.height != ICON_FONT_SIZE:
+                scale = ICON_FONT_SIZE / img.height
+                img = img.resize(
+                    (max(1, round(img.width * scale)), ICON_FONT_SIZE),
+                    Image.LANCZOS,
+                )
             photo = ImageTk.PhotoImage(img)
             self._icon_photos[item.id] = photo  # keep alive — Tk drops GC'd images
             return tk.Label(parent, image=photo, bg=CELL_BG)
