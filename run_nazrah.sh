@@ -8,6 +8,23 @@
 cd "$(dirname "$0")" || exit 1
 source .venv311/bin/activate
 
+# ALSA's default output device doesn't always point at the speaker (card
+# 2, "Headphones") -- without this, plain `aplay` (what tts.py actually
+# calls) fails with "Unknown error 524" and the app is silently mute.
+# Seen going missing between sessions on this device (SD card re-image or
+# similar), so just write it fresh every launch rather than assuming it's
+# still there from before -- cheap, and never wrong to redo.
+cat > ~/.asoundrc << 'ASOUNDRC'
+pcm.!default {
+    type plug
+    slave.pcm "hw:2,0"
+}
+ctl.!default {
+    type hw
+    card 2
+}
+ASOUNDRC
+
 export DISPLAY=:0
 # Camera index isn't stable across reboots/replugs (see
 # docs/raspberry_pi_setup.md) -- re-check with `v4l2-ctl --list-devices`
