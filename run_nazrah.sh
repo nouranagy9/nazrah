@@ -25,6 +25,11 @@ ctl.!default {
 }
 ASOUNDRC
 
+# Same story as the .asoundrc above -- volume resets low between
+# sessions on this device, so push it to max every launch rather than
+# relying on it staying where it was last set.
+amixer -c 2 sset PCM 100% unmute > /dev/null 2>&1
+
 export DISPLAY=:0
 # Camera index isn't stable across reboots/replugs (see
 # docs/raspberry_pi_setup.md) -- re-check with `v4l2-ctl --list-devices`
