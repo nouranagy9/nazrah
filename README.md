@@ -5,6 +5,11 @@ patients, built around how care actually happens in Saudi/Gulf homes:
 multigenerational, mostly home-based, organized around prayer routines and
 family roles rather than institutional care.
 
+> **Full documentation:** [`docs/DOCUMENTATION.md`](docs/DOCUMENTATION.md) —
+> architecture, every module, the calibration algorithm, configuration
+> reference, deployment, troubleshooting, the design-decision log, and the
+> evaluation plan. This README is the short version.
+
 ## Problem
 
 Commercial eye-tracking AAC (Augmentative and Alternative Communication)
@@ -184,10 +189,12 @@ for the full Raspberry Pi 4 + CrowPi deployment walkthrough.
 pytest
 ```
 
-Covers the pieces that don't need a camera or display: dwell-timing state
-machine, calibration math, and phrase data integrity. The gaze tracker, UI,
-and camera modules are exercised manually against real hardware — see
-Criterion D notes for that testing process.
+37 tests cover the pieces that don't need a camera or display: the dwell
+state machine, target smoothing, calibration math (weighted k-NN, save/load),
+phrase data integrity, and the caregiver notifier. The gaze tracker, UI,
+camera, audio and GPIO are exercised manually against real hardware — see
+[section 13 of the full documentation](docs/DOCUMENTATION.md#13-testing) for
+the manual checklist.
 
 ## Adding phrases
 
@@ -196,8 +203,10 @@ Add entries to `PHRASES` in [`nazrah/phrases.py`](nazrah/phrases.py) —
 placeholder until real icon assets are added). Pass `urgent=True` if the
 phrase should also trigger a remote caregiver alert (see above). To use
 recorded audio instead of system TTS for a phrase, drop a
-`<phrase_id>.wav` file into the audio bank directory passed to
-`TTSEngine(audio_bank_dir=...)`.
+`<phrase_id>.wav` file into the [`audio/`](audio/) folder (see
+[`audio/README.md`](audio/README.md); folder set by `AUDIO_BANK_DIR`) —
+all 12 current phrases have recordings, and any phrase without one falls
+back to TTS.
 
 Keep the phrase count a multiple of `GRID_COLUMNS` (currently 4) — the
 calibration grid derives its size from `len(PHRASES)`, and a non-multiple
